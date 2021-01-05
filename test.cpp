@@ -8,6 +8,7 @@
 
 #include <SDL2pp/SDL2pp.hh>
 #include "entity.h"
+#include <chrono>
 
 using namespace SDL2pp;
 
@@ -40,16 +41,22 @@ void sdlTest (void)
 auto main (void) -> int 
 {
 	EMan world;
-	for(int i = 0; i < 100005; i++)
+	sparseArray<int, 64000, 64> sparse;
+	std::array<int, 64000> reg;
+	for(int i = 0; i < 64000; i++)
 	{
-		world.destroy(std::experimental::randint(0, 4));
-
+		sparse.insert(std::experimental::randint(0, 6399), 1);
+		sparse.remove(std::experimental::randint(0, 6399));
 	}
 
+	auto start = std::chrono::high_resolution_clock::now();
+	for(int i = 0; i < 10000; i++)
+		sparse.print();
 
-	sparseArray<int,50,10> sparse;
-	sparse.insert(49, 1);
-	sparse.print();
+	auto stop = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+	std::cout << duration.count() << std::endl;
 }
+
 
 
