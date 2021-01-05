@@ -3,9 +3,12 @@
 #include <array>
 #include <optional>
 #include <assert.h>
+#include <tuple>
+#include <variant>
+#include <iostream>
 
 using Entity = std::uint32_t;
-const Entity MAX_ENTITIES = 5;
+const Entity MAX_ENTITIES = 500;
 
 using ComponentType = std::uint8_t;
 const ComponentType MAX_COMPONENTS = 32;
@@ -60,3 +63,64 @@ public:
 //the guy seems to know a lot about ECS programming but is also retarded because he's bad at koding 
 //even though he's a professor
 using EMan = Packed<Signature, Entity, MAX_ENTITIES>; 
+
+//trying to use a skiplist to skip holes when processing
+//if we can detect holes on insertion that is?
+//all we need to do is make sure we dont mis-hole, we can unhole and be fine!
+//
+
+template<typename T, size_t Max, size_t ChunkSize>
+class sparseArray 
+{
+public:
+	static constexpr size_t chunks = Max / ChunkSize;
+	std::array< std::tuple< std::bitset<ChunkSize>, std::optional< std::array<T, ChunkSize>>>,chunks> 
+	res; 
+
+	sparseArray (void)
+	{
+		res.fill(std::make_tuple(0, std::nullopt));
+	}
+
+	T& insert (size_t pos, const T in)
+	{
+		const size_t chunk = pos / ChunkSize;
+		if(std::get<1>(res[chunk]) == std::nullopt) 
+			std::get<1>(res[chunk]) = std::array<T, ChunkSize>();
+
+		std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)] = in;
+		std::get<0>(res[chunk]).set((pos - ChunkSize * chunk));
+
+		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
+	}
+
+	void print (void)
+	{
+		int i = 0;
+		for(const auto [bitset, opt] : res)
+		{
+			i++;
+			if(bitset.none()) 
+			{
+				std::cout << "chunk " << i << " empty!\n";
+				continue;
+			}
+
+			for(const auto v : opt.value()) std::cout << v << ' ';
+			std::cout << '\n';
+		}
+	}
+
+
+
+	
+};
+
+class IComponentArray
+{
+public:
+	virtual ~IComponentArray() = default;
+	virtual void EntityDestroyed(Entity entity) = 0;
+};
+
+;
