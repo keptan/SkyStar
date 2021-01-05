@@ -133,7 +133,7 @@ public:
 
 		}
 
-			return c;
+			return Max;
 	}
 
 	void remove (size_t pos)
@@ -148,7 +148,7 @@ public:
 
 	class iterator 
 	{
-		using iterator_category = std::bidirectional_iterator_tag;
+		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
 		using value_type		= T;
 		using pointer           = T*;
@@ -159,12 +159,35 @@ public:
 
 		public:
 
-		iterator (sparseArray& r) : res(r) {};
+		iterator (sparseArray& r, size_t p = 0) : res(r), pos(res.next_valid(p)) {};
 		reference operator*() {return res.get(pos);}
+		iterator operator++(int)
+		{
+			iterator tmp = *this;
+			pos = res.next_valid(pos);
+			return tmp;
+		}
 
+		iterator& operator++ (void)
+		{
+			pos = res.next_valid(pos);
+			return *this;
+		}
 
-	
+		friend bool operator== (const iterator& a, const iterator& b)
+		{
+			return (a.res.res == b.res.res && a.pos == b.pos);
+		}
+
+		friend bool operator!= (const iterator& a, const iterator& b)
+		{
+			return (a.res.res != b.res.res || a.pos != b.pos);
+
+		}
 	};
+
+	iterator begin() {return iterator(*this);}
+	iterator end()	 {return iterator(*this, Max);}
 
 
 	int print (void)
