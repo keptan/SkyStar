@@ -42,10 +42,14 @@ auto main (void) -> int
 	EMan world;
 	for(int i = 0; i < 100005; i++)
 	{
-		std::cout << world.create();
 		world.destroy(std::experimental::randint(0, 4));
 
 	}
+
+
+	sparseArray<int,50,10> sparse;
+	sparse.insert(49, 1);
+	sparse.print();
 }
 
 
