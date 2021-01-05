@@ -5,6 +5,7 @@
 #include <unordered_set>
 #include <string>
 #include <experimental/random>
+#include <unordered_map>
 
 #include <SDL2pp/SDL2pp.hh>
 #include "entity.h"
@@ -41,22 +42,45 @@ void sdlTest (void)
 auto main (void) -> int 
 {
 	EMan world;
-	sparseArray<int, 64000, 64> sparse;
-	std::array<int, 64000> reg;
-	for(int i = 0; i < 64000; i++)
+	sparseArray<int, 6400, 64> sparse;
+	std::unordered_map<int, int> regular;
+
+	const auto time = [&](const auto f)
 	{
-		sparse.insert(std::experimental::randint(0, 6399), 1);
-		sparse.remove(std::experimental::randint(0, 6399));
-	}
+		auto start = std::chrono::high_resolution_clock::now();
+		f();
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
+		std::cout << "function took: " << duration.count() << " milliseconds \n";
+	};
+	std::cout << "random access write, array" << '\n';
+	const auto rArray = [&](){
+		for(int i = 0; i < 10000; i++) regular[std::experimental::randint(0, 6399)] = 1;
+	};
+	time(rArray);
 
-	auto start = std::chrono::high_resolution_clock::now();
-	for(int i = 0; i < 10000; i++)
-		sparse.print();
+	std::cout << "random access write, sparse array" << '\n';
+	const auto rsArray = [&](){
+		for(int i = 0; i < 10000; i++) sparse.insert(std::experimental::randint(0, 6399), 1);
+	};
+	time(rsArray);
 
-	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-	std::cout << duration.count() << std::endl;
+	std::cout << "seq read/write, array" << '\n';
+	const auto seqArray = [&](){
+		for(auto i : regular) i.second++;
+	};
+	time(seqArray);
+
+
+	std::cout << "seq read/write, sparse" << '\n';
+	const auto seqSparse = [&](){
+		for(auto i : sparse) i++;
+	};
+	time(seqSparse);
+
 }
+
+
 
 
 
