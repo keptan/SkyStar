@@ -176,12 +176,12 @@ public:
 
 		friend bool operator== (const iterator& a, const iterator& b)
 		{
-			return (a.res.res == b.res.res && a.pos == b.pos);
+			return (a.pos == b.pos);
 		}
 
 		friend bool operator!= (const iterator& a, const iterator& b)
 		{
-			return (a.res.res != b.res.res || a.pos != b.pos);
+			return (a.pos != b.pos);
 
 		}
 	};
