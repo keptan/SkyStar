@@ -110,18 +110,30 @@ public:
 
 	size_t next_valid (size_t start = 0)
 	{
-		size_t c = 0;
-		for(auto [bitset, opt] : res)
+		size_t startChunk = start / ChunkSize;
+		size_t c = startChunk * ChunkSize;
+
+		for(int i = startChunk; i < res.size(); i++)
 		{
-			if(bitset.none())
+			const auto [bitset, data] = res[i];
+			if(bitset.none()) 
 			{
 				c += ChunkSize;
 				continue;
 			}
-			c+= ffsll(bitset.to_ullong()) - 1;
-			return c;
+
+			const auto first = ffsll(bitset.to_ullong()) -1;
+
+			if(c + first > start) return c + first;
+			for(int q = first; q < ChunkSize; q++)
+			{
+				c++;
+				if ((c + first > start) && bitset[q] ) return c + first;
+			}
+
 		}
-		return c;
+
+			return c;
 	}
 
 	void remove (size_t pos)
@@ -145,7 +157,11 @@ public:
 		sparseArray& res;
 		size_t pos;
 
-		iterator (sparseArray r) : res(r) {};
+		public:
+
+		iterator (sparseArray& r) : res(r) {};
+		reference operator*() {return res.get(pos);}
+
 
 	
 	};
