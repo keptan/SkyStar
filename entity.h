@@ -109,23 +109,26 @@ public:
 		if(std::get<0>(res[chunk]).none()) std::get<1>(res[chunk]) = std::nullopt;
 	}
 
-	void print (void)
+	int print (void)
 	{
 		int i = 0;
 		for(auto [bitset, opt] : res)
 		{
-			i++;
 			if(bitset.none()) 
 			{
+				i += ChunkSize;
 				continue;
 			}
 
-			const size_t consq = ffsll(bitset.to_ullong());
-			const size_t conqEnd = std::countr_zero(bitset.to_ullong());
+			const size_t conqEnd = ffsll(bitset.to_ullong()) - 1;
+			const size_t consq = std::countl_zero(bitset.to_ullong());
+			i += consq;
+			i += conqEnd;
 
 			for(int c = consq; c < conqEnd; c++)
 				if(bitset[c])  opt.value()[c] = c+ 1;
 		}
+		return i;
 	}
 	
 };
