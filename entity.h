@@ -94,6 +94,16 @@ public:
 		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
 	}
 
+	void remove (size_t pos)
+	{
+		const size_t chunk = pos / ChunkSize;
+		if(std::get<1>(res[chunk]) == std::nullopt) 
+			return;
+
+		std::get<0>(res[chunk]).reset((pos - ChunkSize * chunk));
+		if(std::get<0>(res[chunk]).none()) std::get<1>(res[chunk]) = std::nullopt;
+	}
+
 	void print (void)
 	{
 		int i = 0;
@@ -106,13 +116,11 @@ public:
 				continue;
 			}
 
-			for(const auto v : opt.value()) std::cout << v << ' ';
+			for(int c = 0; c < opt.value().size(); c++)
+				if(bitset[c]) std::cout << opt.value()[c] << ' ';
 			std::cout << '\n';
 		}
 	}
-
-
-
 	
 };
 
