@@ -1,5 +1,7 @@
 #include <bitset>
 #include <bit>
+#include <cstddef>
+#include <iterator>
 #include <queue>
 #include <array>
 #include <optional>
@@ -99,6 +101,29 @@ public:
 		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
 	}
 
+	//no bounds checking!
+	T& get (size_t pos)
+	{
+		const size_t chunk = pos / ChunkSize;
+		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
+	}
+
+	size_t next_valid (size_t start = 0)
+	{
+		size_t c = 0;
+		for(auto [bitset, opt] : res)
+		{
+			if(bitset.none())
+			{
+				c += ChunkSize;
+				continue;
+			}
+			c+= ffsll(bitset.to_ullong()) - 1;
+			return c;
+		}
+		return c;
+	}
+
 	void remove (size_t pos)
 	{
 		const size_t chunk = pos / ChunkSize;
@@ -108,6 +133,23 @@ public:
 		std::get<0>(res[chunk]).reset((pos - ChunkSize * chunk));
 		if(std::get<0>(res[chunk]).none()) std::get<1>(res[chunk]) = std::nullopt;
 	}
+
+	class iterator 
+	{
+		using iterator_category = std::bidirectional_iterator_tag;
+		using difference_type   = std::ptrdiff_t;
+		using value_type		= T;
+		using pointer           = T*;
+		using reference         = T&;
+
+		sparseArray& res;
+		size_t pos;
+
+		iterator (sparseArray r) : res(r) {};
+
+	
+	};
+
 
 	int print (void)
 	{
@@ -120,8 +162,8 @@ public:
 				continue;
 			}
 
-			const size_t conqEnd = ffsll(bitset.to_ullong()) - 1;
-			const size_t consq = std::countl_zero(bitset.to_ullong());
+			const size_t consq = ffsll(bitset.to_ullong()) - 1;
+			const size_t conqEnd = std::countl_zero(bitset.to_ullong());
 			i += consq;
 			i += conqEnd;
 
