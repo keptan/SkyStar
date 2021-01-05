@@ -1,4 +1,5 @@
 #include <bitset>
+#include <bit>
 #include <queue>
 #include <array>
 #include <optional>
@@ -6,6 +7,10 @@
 #include <tuple>
 #include <variant>
 #include <iostream>
+
+#include <string.h>
+int ffsll(long long int i);
+
 
 using Entity = std::uint32_t;
 const Entity MAX_ENTITIES = 500;
@@ -107,18 +112,19 @@ public:
 	void print (void)
 	{
 		int i = 0;
-		for(const auto [bitset, opt] : res)
+		for(auto [bitset, opt] : res)
 		{
 			i++;
 			if(bitset.none()) 
 			{
-				std::cout << "chunk " << i << " empty!\n";
 				continue;
 			}
 
-			for(int c = 0; c < opt.value().size(); c++)
-				if(bitset[c]) std::cout << opt.value()[c] << ' ';
-			std::cout << '\n';
+			const size_t consq = ffsll(bitset.to_ullong());
+			const size_t conqEnd = std::countr_zero(bitset.to_ullong());
+
+			for(int c = consq; c < conqEnd; c++)
+				if(bitset[c])  opt.value()[c] = c+ 1;
 		}
 	}
 	
