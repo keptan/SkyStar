@@ -105,6 +105,9 @@ public:
 	T& get (size_t pos)
 	{
 		const size_t chunk = pos / ChunkSize;
+
+		if(std::get<1>(res[chunk]) == std::nullopt) 
+			std::cout << "tried to read a null chunk!: " << pos << '\n';
 		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
 	}
 
@@ -112,6 +115,9 @@ public:
 	{
 		size_t startChunk = start / ChunkSize;
 		size_t c = startChunk * ChunkSize;
+		size_t localOffset = start - c;
+
+		std::cout << startChunk * 64 << '\n';
 
 		for(int i = startChunk; i < res.size(); i++)
 		{
@@ -119,16 +125,21 @@ public:
 			if(bitset.none()) 
 			{
 				c += ChunkSize;
+
+				std::cout << "empty chunk: " << c << "\n";
 				continue;
 			}
 
 			const auto first = ffsll(bitset.to_ullong()) -1;
+			//std::cout << "first: " << first  + c << '\n';
 
 			if(c + first > start) return c + first;
-			for(int q = first; q < ChunkSize; q++)
+
+			//std::cout << "reached loop\n";
+			//std::cout << i * ChunkSize + localOffset<< '\n';
+			for(int q = localOffset + 1; q < ChunkSize; q++)
 			{
-				c++;
-				if ((c + first > start) && bitset[q] ) return c + first;
+				if (bitset[q] ) return c + q;
 			}
 
 		}
@@ -159,18 +170,24 @@ public:
 
 		public:
 
-		iterator (sparseArray& r, size_t p = 0) : res(r), pos(res.next_valid(p)) {};
+		iterator (sparseArray& r, size_t p = 0) : res(r)
+		{
+			 pos = res.next_valid(p);
+		};
 		reference operator*() {return res.get(pos);}
 		iterator operator++(int)
 		{
 			iterator tmp = *this;
+			auto t = pos;
 			pos = res.next_valid(pos);
 			return tmp;
 		}
 
 		iterator& operator++ (void)
 		{
+			auto t = pos;
 			pos = res.next_valid(pos);
+
 			return *this;
 		}
 
@@ -186,7 +203,7 @@ public:
 		}
 	};
 
-	iterator begin() {return iterator(*this);}
+	iterator begin() {return iterator(*this, 0);}
 	iterator end()	 {return iterator(*this, Max);}
 
 
