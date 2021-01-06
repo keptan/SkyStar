@@ -129,11 +129,16 @@ public:
 				c += ChunkSize;
 				continue;
 			}
-			const size_t begin = std::countr_zero(bitset.to_ullong()) - 1;
-			const size_t end = std::countl_zero(bitset.to_ullong()) - 1;
-			for(int q = begin; q < end; q++)
+
+			const size_t end = std::countl_zero(bitset.to_ullong());
+			const size_t begin = std::countr_zero(bitset.to_ullong());
+			for(int q = begin; q < ChunkSize - end; q++)
 			{
-				if(bitset[q] && c + q > start) return c + q;
+			
+				if(bitset[q] && c + q > start) 
+				{
+					return c + q;
+				}
 			}
 			c+= ChunkSize;
 		}
