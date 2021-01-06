@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <string>
 #include <experimental/random>
-#include <unordered_map>
+#include <map>
 
 #include <SDL2pp/SDL2pp.hh>
 #include "entity.h"
@@ -39,11 +39,11 @@ void sdlTest (void)
 	SDL_Delay(5000);
 }
 
-auto main (void) -> int 
+void benchmark (void)
 {
-	EMan world;
-	sparseArray<int, 6400, 64> sparse;
+	sparseArray<int, 64000, 64> sparse;
 	std::unordered_map<int, int> regular;
+	std::vector<std::optional<int>> vec;
 
 	const auto time = [&](const auto f)
 	{
@@ -55,19 +55,24 @@ auto main (void) -> int
 	};
 	std::cout << "random access write, array" << '\n';
 	const auto rArray = [&](){
-		for(int i = 0; i < 10000; i++) regular[std::experimental::randint(0, 6399)] = 1;
+		for(int i = 0; i < 1000; i++) regular[std::experimental::randint(0, 63999)] = 1;
 	};
 	time(rArray);
 
 	std::cout << "random access write, sparse array" << '\n';
 	const auto rsArray = [&](){
-		for(int i = 0; i < 10000; i++) sparse.insert(std::experimental::randint(0, 6399), 1);
+		for(int i = 0; i < 1000; i++) sparse.insert(std::experimental::randint(0, 63999), 1);
 	};
 	time(rsArray);
 
+
 	std::cout << "seq read/write, array" << '\n';
 	const auto seqArray = [&](){
-		for(auto i : regular) i.second++;
+		for(int i = 0; i < 64000; i++)
+		{
+			if(regular[i])
+				regular[i]++;
+		}
 	};
 	time(seqArray);
 
@@ -77,7 +82,11 @@ auto main (void) -> int
 		for(auto i : sparse) i++;
 	};
 	time(seqSparse);
+}
 
+auto main (void) -> int 
+{
+benchmark();
 }
 
 
