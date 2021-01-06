@@ -81,24 +81,31 @@ class sparseArray
 {
 public:
 	static constexpr size_t chunks = Max / ChunkSize;
-	std::array< std::tuple< std::bitset<ChunkSize>, std::optional< std::array<T, ChunkSize>>>,chunks> 
-	res; 
+	std::array<std::bitset<ChunkSize>, chunks> flags;
+	std::array<std::optional<std::array<T, ChunkSize>>, chunks> res;
 
 	sparseArray (void)
 	{
-		res.fill(std::make_tuple(0, std::nullopt));
+		res.fill(std::nullopt);
+		flags.fill(0);
 	}
 
 	T& insert (size_t pos, const T in)
 	{
 		const size_t chunk = pos / ChunkSize;
-		if(std::get<1>(res[chunk]) == std::nullopt) 
-			std::get<1>(res[chunk]) = std::array<T, ChunkSize>();
+		if(flags[chunk].none()) res[chunk] = std::array<T, ChunkSize>();
+		flags[chunk].set(pos - ChunkSize * chunk);
+		res[chunk].value()[pos - ChunkSize * chunk] = in;
 
-		std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)] = in;
-		std::get<0>(res[chunk]).set((pos - ChunkSize * chunk));
+		return res[chunk].value()[pos - ChunkSize * chunk];
+	}
 
-		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
+	void remove (size_t pos)
+	{
+		const size_t chunk = pos / ChunkSize;
+		if(flags[chunk].none()) return; 
+
+		flags[chunk].reset(pos - ChunkSize * chunk);
 	}
 
 	//no bounds checking!
@@ -106,56 +113,35 @@ public:
 	{
 		const size_t chunk = pos / ChunkSize;
 
-		if(std::get<1>(res[chunk]) == std::nullopt) 
-			std::cout << "tried to read a null chunk!: " << pos << '\n';
-		return std::get<1>(res[chunk]).value()[(pos - ChunkSize * chunk)];
+		return res[chunk].value()[pos - ChunkSize * chunk];
 	}
 
 	size_t next_valid (size_t start = 0)
 	{
 		size_t startChunk = start / ChunkSize;
 		size_t c = startChunk * ChunkSize;
-		size_t localOffset = start - c;
 
-		std::cout << startChunk * 64 << '\n';
-
-		for(int i = startChunk; i < res.size(); i++)
+		for(int i = startChunk; i < chunks; i++)
 		{
-			const auto [bitset, data] = res[i];
-			if(bitset.none()) 
+			const auto& bitset = flags[i];
+			if(bitset.none())
 			{
 				c += ChunkSize;
-
-				std::cout << "empty chunk: " << c << "\n";
 				continue;
 			}
-
-			const auto first = ffsll(bitset.to_ullong()) -1;
-			//std::cout << "first: " << first  + c << '\n';
-
-			if(c + first > start) return c + first;
-
-			//std::cout << "reached loop\n";
-			//std::cout << i * ChunkSize + localOffset<< '\n';
-			for(int q = localOffset + 1; q < ChunkSize; q++)
+			const size_t begin = std::countr_zero(bitset.to_ullong()) - 1;
+			const size_t end = std::countl_zero(bitset.to_ullong()) - 1;
+			for(int q = begin; q < end; q++)
 			{
-				if (bitset[q] ) return c + q;
+				if(bitset[q] && c + q > start) return c + q;
 			}
-
+			c+= ChunkSize;
 		}
+		return c;
 
-			return Max;
 	}
 
-	void remove (size_t pos)
-	{
-		const size_t chunk = pos / ChunkSize;
-		if(std::get<1>(res[chunk]) == std::nullopt) 
-			return;
 
-		std::get<0>(res[chunk]).reset((pos - ChunkSize * chunk));
-		if(std::get<0>(res[chunk]).none()) std::get<1>(res[chunk]) = std::nullopt;
-	}
 
 	class iterator 
 	{
