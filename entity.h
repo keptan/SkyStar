@@ -80,9 +80,41 @@ class SparseArray
 {
 	static constexpr size_t ChunkSize = 64;
 	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
-	static constexpr size_t chunks = Max / ChunkSize;
-	std::array<std::bitset<ChunkSize>, chunks> flags;
-	std::array<std::optional<std::array<T, ChunkSize>>, chunks> res;
+	static constexpr size_t Chunks = Max / ChunkSize;
+	std::array<std::bitset<ChunkSize>, Chunks> flags;
+	std::array<std::optional<std::array<T, ChunkSize>>, Chunks> res;
+
+	size_t next_valid (const size_t start = 0)
+	{
+		const size_t startChunk = start / ChunkSize;
+		size_t c = startChunk * ChunkSize;
+
+		for(int i = startChunk; i < Chunks; i++)
+		{
+			const auto& bitset = flags[i];
+			if(bitset.none())
+			{
+				c += ChunkSize;
+				continue;
+			}
+
+			const size_t end = std::countl_zero(bitset.to_ullong());
+			const size_t begin = std::countr_zero(bitset.to_ullong());
+			for(int q = begin; q < ChunkSize - end; q++)
+			{
+			
+				if(bitset[q] && c + q > start) 
+				{
+					return c + q;
+				}
+			}
+			c+= ChunkSize;
+		}
+		return c;
+
+	}
+
+
 
 public:
 
@@ -118,39 +150,8 @@ public:
 		return res[chunk].value()[pos - ChunkSize * chunk];
 	}
 
-	size_t next_valid (const size_t start = 0)
-	{
-		const size_t startChunk = start / ChunkSize;
-		size_t c = startChunk * ChunkSize;
 
-		for(int i = startChunk; i < chunks; i++)
-		{
-			const auto& bitset = flags[i];
-			if(bitset.none())
-			{
-				c += ChunkSize;
-				continue;
-			}
-
-			const size_t end = std::countl_zero(bitset.to_ullong());
-			const size_t begin = std::countr_zero(bitset.to_ullong());
-			for(int q = begin; q < ChunkSize - end; q++)
-			{
-			
-				if(bitset[q] && c + q > start) 
-				{
-					return c + q;
-				}
-			}
-			c+= ChunkSize;
-		}
-		return c;
-
-	}
-
-
-
-	class iterator 
+	class Iterator 
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
@@ -163,20 +164,20 @@ public:
 
 		public:
 
-		iterator (SparseArray& r, size_t p = 0) : res(r)
+		Iterator (SparseArray& r, const size_t p = 0) : res(r)
 		{
 			 pos = res.next_valid(p);
 		};
 		reference operator*() {return res.get(pos);}
-		iterator operator++(int)
+		Iterator operator++(int)
 		{
-			iterator tmp = *this;
+			Iterator tmp = *this;
 			auto t = pos;
 			pos = res.next_valid(pos);
 			return tmp;
 		}
 
-		iterator& operator++ (void)
+		Iterator& operator++ (void)
 		{
 			auto t = pos;
 			pos = res.next_valid(pos);
@@ -184,27 +185,27 @@ public:
 			return *this;
 		}
 
-		friend bool operator== (const iterator& a, const iterator& b)
+		friend bool operator== (const Iterator& a, const Iterator& b)
 		{
 			return (a.pos == b.pos);
 		}
 
-		friend bool operator!= (const iterator& a, const iterator& b)
+		friend bool operator!= (const Iterator& a, const Iterator& b)
 		{
 			return (a.pos != b.pos);
 
 		}
 	};
 
-	iterator begin() {return iterator(*this, 0);}
-	iterator end()	 {return iterator(*this, Max);}
+	Iterator begin() {return Iterator(*this, 0);}
+	Iterator end()	 {return Iterator(*this, Max);}
 };
 
 class IComponentArray
 {
 public:
 	virtual ~IComponentArray() = default;
-	virtual void EntityDestroyed(Entity entity) = 0;
+	virtual void entityDestroyed(Entity entity) = 0;
 };
 
 template<typename T>
@@ -228,7 +229,7 @@ class SparseComponentArray : public IComponentArray
 		return res.get(entity);
 	}
 
-	void EntityDestroyed(const Entity e) override 
+	void entityDestroyed(const Entity e) override 
 	{
 		res.remove(e);
 	}
@@ -238,7 +239,7 @@ class ComponentMan
 {
 	//string pointer to components
 	std::unordered_map<const char*, ComponentType> components;
-	std::unordered_map<const char*, std::shared_ptr<IComponentArray>> mComponentArrays;
+	std::unordered_map<const char*, std::shared_ptr<IComponentArray>> componentArrays;
 
 	ComponentType ccounter;
 
@@ -248,7 +249,7 @@ class ComponentMan
 		const char* typeName = typeid(T).name();
 		assert(components.find(typeName) != components.end() && "Component not registered before use.");
 
-		return std::static_pointer_cast<SparseComponentArray<T>>(mComponentArrays[typeName]);
+		return std::static_pointer_cast<SparseComponentArray<T>>(componentArrays[typeName]);
 	}
 public: 
 
@@ -258,7 +259,7 @@ public:
 		const char* typeName = typeid(T).name();
 		components.insert({typeName, ccounter});
 
-		mComponentArrays.insert({typeName, std::make_shared<SparseArray<T, MAX_ENTITIES>>()});
+		componentArrays.insert({typeName, std::make_shared<SparseArray<T, MAX_ENTITIES>>()});
 
 		return ++ccounter;
 	}
@@ -272,23 +273,23 @@ public:
 	}
 
 	template<typename T>
-	void add (Entity entity, T component)
+	void add (const Entity entity, const T component)
 	{
 		GetComponentArray<T>()->insert(entity, component);
 	}
 
 	template<typename T>
-	T& getComponent (Entity e)
+	T& getComponent (const Entity e)
 	{
 		return GetComponentArray<T>()->get(e);
 	}
 
-	void EntityDestroyed (Entity entity)
+	void EntityDestroyed (const Entity entity)
 	{
-		for (auto const& pair : mComponentArrays)
+		for (auto const& pair : componentArrays)
 		{
 			auto const& component = pair.second;
-			component->EntityDestroyed(entity);
+			component->entityDestroyed(entity);
 		}
 	}
 };
