@@ -9,6 +9,8 @@
 #include <tuple>
 #include <variant>
 #include <iostream>
+#include <unordered_map>
+#include <memory>
 
 #include <string.h>
 int ffsll(long long int i);
@@ -254,6 +256,62 @@ class SparseComponentArray : public IComponentArray
 		res.remove(e);
 	}
 };
-	
 
+class ComponentMan
+{
+	//string pointer to components
+	std::unordered_map<const char*, ComponentType> components;
+	std::unordered_map<const char*, std::shared_ptr<IComponentArray>> mComponentArrays;
 
+	ComponentType ccounter;
+
+	template <typename T>
+	std::shared_ptr<SparseComponentArray<T>> GetComponentArray (void)
+	{
+		const char* typeName = typeid(T).name();
+		assert(components.find(typeName) != components.end() && "Component not registered before use.");
+
+		return std::static_pointer_cast<SparseComponentArray<T>>(mComponentArrays[typeName]);
+	}
+public: 
+
+	template <typename T>
+	ComponentType registerC (void)
+	{
+		const char* typeName = typeid(T).name();
+		components.insert({typeName, ccounter});
+
+		mComponentArrays.insert({typeName, std::make_shared<sparseArray<T, MAX_ENTITIES, 64>>()});
+
+		return ++ccounter;
+	}
+
+	template <typename T>
+	ComponentType getId (void)
+	{
+		const char* typeName = typeid(T).name();
+
+		return components[typeName];
+	}
+
+	template<typename T>
+	void add (Entity entity, T component)
+	{
+		GetComponentArray<T>()->insert(entity, component);
+	}
+
+	template<typename T>
+	T& getComponent (Entity e)
+	{
+		return GetComponentArray<T>()->get(e);
+	}
+
+	void EntityDestroyed (Entity entity)
+	{
+		for (auto const& pair : mComponentArrays)
+		{
+			auto const& component = pair.second;
+			component->EntityDestroyed(entity);
+		}
+	}
+};
