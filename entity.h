@@ -15,7 +15,7 @@ int ffsll(long long int i);
 
 
 using Entity = std::uint32_t;
-const Entity MAX_ENTITIES = 500;
+const Entity MAX_ENTITIES = 6400;
 
 using ComponentType = std::uint8_t;
 const ComponentType MAX_COMPONENTS = 32;
@@ -229,4 +229,31 @@ public:
 	virtual void EntityDestroyed(Entity entity) = 0;
 };
 
-;
+template<typename T>
+class SparseComponentArray : public IComponentArray 
+{
+	sparseArray<T, MAX_ENTITIES, 64> res;
+	public:
+	void insert (Entity e, T component)
+	{
+		res.insert(e, component);
+	}
+
+	void remove (Entity e)
+	{
+		res.remove(e);
+	}
+
+	T& GetData (Entity entity)
+	{
+		return res.get(entity);
+	}
+
+	void EntityDestroyed(Entity e) override 
+	{
+		res.remove(e);
+	}
+};
+	
+
+
