@@ -41,7 +41,7 @@ void sdlTest (void)
 
 void benchmark (void)
 {
-	sparseArray<int, 64000, 64> sparse;
+	SparseArray<int, 64000> sparse;
 	std::unordered_map<int, int> regular;
 	std::vector<std::optional<int>> vec;
 
@@ -55,13 +55,13 @@ void benchmark (void)
 	};
 	std::cout << "random access write, array" << '\n';
 	const auto rArray = [&](){
-		for(int i = 0; i < 1000; i++) regular[std::experimental::randint(0, 63999)] = 1;
+		for(int i = 0; i < 100; i++) regular[std::experimental::randint(0, 63999)] = 1;
 	};
 	time(rArray);
 
 	std::cout << "random access write, sparse array" << '\n';
 	const auto rsArray = [&](){
-		for(int i = 0; i < 1000; i++) sparse.insert(std::experimental::randint(0, 63999), 1);
+		for(int i = 0; i < 100; i++) sparse.insert(std::experimental::randint(0, 63999), 1);
 	};
 	time(rsArray);
 

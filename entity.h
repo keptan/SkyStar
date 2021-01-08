@@ -12,15 +12,12 @@
 #include <unordered_map>
 #include <memory>
 
-#include <string.h>
-int ffsll(long long int i);
-
-
 using Entity = std::uint32_t;
+using ComponentType = std::uint8_t;
+
+const ComponentType MAX_COMPONENTS = 32;
 const Entity MAX_ENTITIES = 6400;
 
-using ComponentType = std::uint8_t;
-const ComponentType MAX_COMPONENTS = 32;
 using Signature = std::bitset<MAX_COMPONENTS>;
 
 //a packed array of fixed size, but supports adding or removing items
@@ -78,31 +75,34 @@ using EMan = Packed<Signature, Entity, MAX_ENTITIES>;
 //all we need to do is make sure we dont mis-hole, we can unhole and be fine!
 //
 
-template<typename T, size_t Max, size_t ChunkSize>
-class sparseArray 
+template<typename T, size_t Max_T>
+class SparseArray 
 {
-public:
+	static constexpr size_t ChunkSize = 64;
+	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
 	static constexpr size_t chunks = Max / ChunkSize;
 	std::array<std::bitset<ChunkSize>, chunks> flags;
 	std::array<std::optional<std::array<T, ChunkSize>>, chunks> res;
 
-	sparseArray (void)
+public:
+
+	SparseArray (void)
 	{
 		res.fill(std::nullopt);
 		flags.fill(0);
 	}
 
-	T& insert (size_t pos, const T in)
+	T& insert (const size_t pos, const T in)
 	{
 		const size_t chunk = pos / ChunkSize;
 		if(flags[chunk].none()) res[chunk] = std::array<T, ChunkSize>();
+
 		flags[chunk].set(pos - ChunkSize * chunk);
 		res[chunk].value()[pos - ChunkSize * chunk] = in;
-
 		return res[chunk].value()[pos - ChunkSize * chunk];
 	}
 
-	void remove (size_t pos)
+	void remove (const size_t pos)
 	{
 		const size_t chunk = pos / ChunkSize;
 		if(flags[chunk].none()) return; 
@@ -111,16 +111,16 @@ public:
 	}
 
 	//no bounds checking!
-	T& get (size_t pos)
+	T& get (const size_t pos)
 	{
 		const size_t chunk = pos / ChunkSize;
 
 		return res[chunk].value()[pos - ChunkSize * chunk];
 	}
 
-	size_t next_valid (size_t start = 0)
+	size_t next_valid (const size_t start = 0)
 	{
-		size_t startChunk = start / ChunkSize;
+		const size_t startChunk = start / ChunkSize;
 		size_t c = startChunk * ChunkSize;
 
 		for(int i = startChunk; i < chunks; i++)
@@ -158,12 +158,12 @@ public:
 		using pointer           = T*;
 		using reference         = T&;
 
-		sparseArray& res;
+		SparseArray& res;
 		size_t pos;
 
 		public:
 
-		iterator (sparseArray& r, size_t p = 0) : res(r)
+		iterator (SparseArray& r, size_t p = 0) : res(r)
 		{
 			 pos = res.next_valid(p);
 		};
@@ -198,30 +198,6 @@ public:
 
 	iterator begin() {return iterator(*this, 0);}
 	iterator end()	 {return iterator(*this, Max);}
-
-
-	int print (void)
-	{
-		int i = 0;
-		for(auto [bitset, opt] : res)
-		{
-			if(bitset.none()) 
-			{
-				i += ChunkSize;
-				continue;
-			}
-
-			const size_t consq = ffsll(bitset.to_ullong()) - 1;
-			const size_t conqEnd = std::countl_zero(bitset.to_ullong());
-			i += consq;
-			i += conqEnd;
-
-			for(int c = consq; c < conqEnd; c++)
-				if(bitset[c])  opt.value()[c] = c+ 1;
-		}
-		return i;
-	}
-	
 };
 
 class IComponentArray
@@ -234,24 +210,25 @@ public:
 template<typename T>
 class SparseComponentArray : public IComponentArray 
 {
-	sparseArray<T, MAX_ENTITIES, 64> res;
+	SparseArray<T, MAX_ENTITIES> res;
+
 	public:
-	void insert (Entity e, T component)
+	void insert (const Entity e, const T component)
 	{
 		res.insert(e, component);
 	}
 
-	void remove (Entity e)
+	void remove (const Entity e)
 	{
 		res.remove(e);
 	}
 
-	T& GetData (Entity entity)
+	T& GetData (const Entity entity)
 	{
 		return res.get(entity);
 	}
 
-	void EntityDestroyed(Entity e) override 
+	void EntityDestroyed(const Entity e) override 
 	{
 		res.remove(e);
 	}
@@ -281,7 +258,7 @@ public:
 		const char* typeName = typeid(T).name();
 		components.insert({typeName, ccounter});
 
-		mComponentArrays.insert({typeName, std::make_shared<sparseArray<T, MAX_ENTITIES, 64>>()});
+		mComponentArrays.insert({typeName, std::make_shared<SparseArray<T, MAX_ENTITIES>>()});
 
 		return ++ccounter;
 	}
