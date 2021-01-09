@@ -342,6 +342,9 @@ class ComponentMan
 
 	ComponentType ccounter;
 
+
+public: 
+
 	template <typename T>
 	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
 	{
@@ -350,7 +353,6 @@ class ComponentMan
 
 		return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeName]);
 	}
-public: 
 
 	template <typename T>
 	ComponentType registerComponent (void)
@@ -383,7 +385,7 @@ public:
 		return getComponentArray<T>()->get(e);
 	}
 
-	void EntityDestroyed (const Entity entity)
+	void destroy (const Entity entity)
 	{
 		for (auto const& pair : componentArrays)
 		{
@@ -392,3 +394,55 @@ public:
 		}
 	}
 };
+
+class WorldSystems
+{
+	ComponentMan components;
+	EMan entities;
+
+	Entity newEntity (void)
+	{
+		auto out = entities.create();
+		entities.touch(out, 0);
+		return out;
+	}
+
+	void killEntity (Entity e)
+	{
+		entities.destroy(e);
+		components.destroy(e);
+	}
+
+	template <typename T>
+	void registerComponent (void)
+	{
+		components.registerComponent<T>();
+	}
+
+	template <typename T>
+	void addComponent (Entity e, T c)
+	{
+		components.add(e, c);
+		auto& signature = entities.touch(e);
+		signature.set(components.getId<T>(), true);
+	}
+
+	template <typename T>
+	void removeComponent (Entity e)
+	{
+		components.destroy(e);
+		auto& signature = entities.touch(e);
+		signature.set(components.getId<T>(), false);
+	}
+
+	template <typename T>
+	auto getComponents (void)
+	{
+		return components.getComponentArray<T>();
+	}
+
+};
+		
+	
+
+
