@@ -62,6 +62,58 @@ public:
 		res[id] = data.value();
 		return res[id];
 	}
+
+	size_t size (void)
+	{
+		return count;
+	}
+
+	class Iterator 
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = std::ptrdiff_t;
+		using value_type		= T;
+		using pointer           = T*;
+		using reference         = T&;
+
+		Packed& res;
+		size_t pos;
+
+		public:
+		Iterator (Packed& r, const size_t p = 0) : res(r), pos(p)
+		{}
+		reference operator*() {return res.res[pos];}
+		Iterator operator++(int)
+		{
+			Iterator tmp = *this;
+			auto t = pos;
+			pos++;
+			return tmp;
+		}
+
+		Iterator& operator++ (void)
+		{
+			auto t = pos;
+			pos++ ;
+			return *this;
+		}
+
+		friend bool operator== (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos == b.pos);
+		}
+
+		friend bool operator!= (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos != b.pos);
+
+		}
+	};
+
+	Iterator begin() {return Iterator(*this, 0);}
+	Iterator end()	 {return Iterator(*this, count);}
+
+
 };
 
 //packed erray of entity signatures
@@ -400,9 +452,10 @@ public:
 class WorldSystems
 {
 	ComponentMan components;
-	EMan entities;
 
 	public:
+	EMan entities;
+
 
 	Entity newEntity (void)
 	{
