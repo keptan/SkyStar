@@ -56,7 +56,7 @@ public:
 		recycled.push(id);
 	}
 
-	const T& touch (const E id, const std::optional<T> data = std::nullopt)
+	T& touch (const E id, const std::optional<T> data = std::nullopt)
 	{
 		if(data == std::nullopt) return res[id];
 		res[id] = data.value();
@@ -206,14 +206,15 @@ public:
 template <typename T, size_t Max_T = MAX_ENTITIES>
 class SeqArray
 {
-	std::array<std::optional<T>, Max_T> res;
+	std::bitset<Max_T> enabled;
+	std::array<T, Max_T> res;
 
 	size_t next_valid (const size_t start = 0)
 	{
 		if(start < 0 || start >= Max_T) return Max_T;
 		for(int i = start + 1; i < Max_T; i++)
 		{
-			if(res[i] != std::nullopt) return i;
+			if(enabled[i]) return res[i];
 		}
 	}
 
@@ -221,13 +222,14 @@ public:
 
 	T& insert (const size_t pos, const T in)
 	{
+		enabled.set(pos);
 		res[pos] = in;
 		return res[pos];
 	}
 
 	void remove (const size_t pos)
 	{
-		res[pos] = std::nullopt;
+		enabled.reset(pos);
 	}
 
 	T& get (const size_t pos)
@@ -360,7 +362,7 @@ public:
 		const char* typeName = typeid(T).name();
 		components.insert({typeName, ccounter});
 
-		componentArrays.insert({typeName, std::make_shared<SparseArray<T, MAX_ENTITIES>>()});
+		componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
 
 		return ++ccounter;
 	}
@@ -399,6 +401,8 @@ class WorldSystems
 {
 	ComponentMan components;
 	EMan entities;
+
+	public:
 
 	Entity newEntity (void)
 	{
@@ -439,6 +443,12 @@ class WorldSystems
 	auto getComponents (void)
 	{
 		return components.getComponentArray<T>();
+	}
+
+	template <typename T>
+	ComponentType getComponentId (void)
+	{
+		return components.getId<T>();
 	}
 
 };
