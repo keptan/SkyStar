@@ -201,6 +201,90 @@ public:
 	Iterator end()	 {return Iterator(*this, Max);}
 };
 
+template <typename T, size_t Max_T>
+class SeqArray
+{
+	std::array<std::optional<T>, Max_T> res;
+
+	size_t next_valid (const size_t start = 0)
+	{
+		if(start < 0 || start >= Max_T) return Max_T;
+		for(int i = start + 1; i < Max_T; i++)
+		{
+			if(res[i] != std::nullopt) return i;
+		}
+	}
+
+public:
+
+	T& insert (const size_t pos, const T in)
+	{
+		res[pos] = in;
+		return res[pos];
+	}
+
+	void remove (const size_t pos)
+	{
+		res[pos] = std::nullopt;
+	}
+
+	T& get (const size_t pos)
+	{
+		return res[pos];
+	}
+
+
+	class Iterator 
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = std::ptrdiff_t;
+		using value_type		= T;
+		using pointer           = T*;
+		using reference         = T&;
+
+		SeqArray& res;
+		size_t pos;
+
+		public:
+
+		Iterator (SeqArray& r, const size_t p = 0) : res(r)
+		{
+			 pos = res.next_valid(p);
+		};
+		reference operator*() {return res.get(pos);}
+		Iterator operator++(int)
+		{
+			Iterator tmp = *this;
+			auto t = pos;
+			pos = res.next_valid(pos);
+			return tmp;
+		}
+
+		Iterator& operator++ (void)
+		{
+			auto t = pos;
+			pos = res.next_valid(pos);
+
+			return *this;
+		}
+
+		friend bool operator== (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos == b.pos);
+		}
+
+		friend bool operator!= (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos != b.pos);
+
+		}
+	};
+
+	Iterator begin() {return Iterator(*this, 0);}
+	Iterator end()	 {return Iterator(*this, Max_T);}
+};
+
+
 class IComponentArray
 {
 public:
@@ -208,10 +292,10 @@ public:
 	virtual void entityDestroyed(Entity entity) = 0;
 };
 
-template<typename T>
-class SparseComponentArray : public IComponentArray 
+template<typename T, typename StorageStrat>
+class ComponentArray : public IComponentArray 
 {
-	SparseArray<T, MAX_ENTITIES> res;
+	StorageStrat<T, MAX_ENTITIES> res;
 
 	public:
 	void insert (const Entity e, const T component)
@@ -224,9 +308,9 @@ class SparseComponentArray : public IComponentArray
 		res.remove(e);
 	}
 
-	T& GetData (const Entity entity)
+	T& get (const Entity e)
 	{
-		return res.get(entity);
+		return res.get(e);
 	}
 
 	void entityDestroyed(const Entity e) override 
@@ -244,7 +328,7 @@ class ComponentMan
 	ComponentType ccounter;
 
 	template <typename T>
-	std::shared_ptr<SparseComponentArray<T>> GetComponentArray (void)
+	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
 	{
 		const char* typeName = typeid(T).name();
 		assert(components.find(typeName) != components.end() && "Component not registered before use.");
@@ -254,7 +338,7 @@ class ComponentMan
 public: 
 
 	template <typename T>
-	ComponentType registerC (void)
+	ComponentType registerComponent (void)
 	{
 		const char* typeName = typeid(T).name();
 		components.insert({typeName, ccounter});
@@ -275,13 +359,13 @@ public:
 	template<typename T>
 	void add (const Entity entity, const T component)
 	{
-		GetComponentArray<T>()->insert(entity, component);
+		getComponentArray<T>()->insert(entity, component);
 	}
 
 	template<typename T>
 	T& getComponent (const Entity e)
 	{
-		return GetComponentArray<T>()->get(e);
+		return getComponentArray<T>()->get(e);
 	}
 
 	void EntityDestroyed (const Entity entity)
