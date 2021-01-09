@@ -21,8 +21,9 @@ const Entity MAX_ENTITIES = 6400;
 
 using Signature = std::bitset<MAX_COMPONENTS>;
 
-//a packed array of fixed size, but supports adding or removing items
-//so that uhhh its contiguous or something ????
+//this is a packed array that we use as the global store of which entities are associated with which components
+//well actually all en entity is is just a collection of components right?
+//yes
 template <typename T, typename E, E Max>
 class Packed
 {
@@ -127,7 +128,7 @@ using EMan = Packed<Signature, Entity, MAX_ENTITIES>;
 //if we can detect holes on insertion that is?
 //all we need to do is make sure we dont mis-hole, we can unhole and be fine!
 //
-
+//a sparse away is more efficient for iterating large components that most entities DO NOT use!
 
 template<typename T, size_t Max_T = MAX_ENTITIES>
 class SparseArray 
@@ -255,6 +256,9 @@ public:
 	Iterator end()	 {return Iterator(*this, Max);}
 };
 
+//the seq away is a more simpler case where its a component like POS where its small
+//and lots of entities (nearly all) will contain it
+//so we can use this faster datastructure
 template <typename T, size_t Max_T = MAX_ENTITIES>
 class SeqArray
 {
@@ -348,9 +352,7 @@ public:
 	virtual void entityDestroyed(Entity entity) = 0;
 };
 
-
-
-
+//some fancy tag dispatch so that we can use different storage strategies optionally 
 template<typename T, typename Default >
 class StorageDispatch
 {
@@ -360,6 +362,10 @@ public:
 	using Type = decltype( test<T>(nullptr) );
 };
 
+//component array uses this interface V so that we can keep track of entities being wacked
+//in which case we should remove the component
+//maybe we can just skip this step though if we rely on the packed_list
+//uhhh???
 template<typename T>
 class ComponentArray : public IComponentArray 
 {
@@ -388,6 +394,8 @@ class ComponentArray : public IComponentArray
 	}
 };
 
+//components man does lots of cool magic to help us register and collect
+//components easily
 class ComponentMan
 {
 	//string pointer to components
@@ -449,6 +457,8 @@ public:
 	}
 };
 
+//world systems manages entities together
+//so if we remove an entity it lets the components, and the list of entities know
 class WorldSystems
 {
 	ComponentMan components;
