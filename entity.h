@@ -11,6 +11,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <memory>
+#include <type_traits>
 
 using Entity = std::uint32_t;
 using ComponentType = std::uint8_t;
@@ -75,7 +76,8 @@ using EMan = Packed<Signature, Entity, MAX_ENTITIES>;
 //all we need to do is make sure we dont mis-hole, we can unhole and be fine!
 //
 
-template<typename T, size_t Max_T>
+
+template<typename T, size_t Max_T = MAX_ENTITIES>
 class SparseArray 
 {
 	static constexpr size_t ChunkSize = 64;
@@ -201,7 +203,7 @@ public:
 	Iterator end()	 {return Iterator(*this, Max);}
 };
 
-template <typename T, size_t Max_T>
+template <typename T, size_t Max_T = MAX_ENTITIES>
 class SeqArray
 {
 	std::array<std::optional<T>, Max_T> res;
@@ -292,10 +294,23 @@ public:
 	virtual void entityDestroyed(Entity entity) = 0;
 };
 
-template<typename T, typename StorageStrat>
+
+
+
+template<typename T, typename Default >
+class StorageDispatch
+{
+	template <typename C> static Default test( ... );
+	template <typename C> static typename C::StorageStrategy test (typename C::StorageStrategy * );
+public:
+	using Type = decltype( test<T>(nullptr) );
+};
+
+template<typename T>
 class ComponentArray : public IComponentArray 
 {
-	StorageStrat<T, MAX_ENTITIES> res;
+	using Storage = StorageDispatch<T, SeqArray<T, MAX_ENTITIES>>::Type;
+	Storage res;
 
 	public:
 	void insert (const Entity e, const T component)
@@ -333,7 +348,7 @@ class ComponentMan
 		const char* typeName = typeid(T).name();
 		assert(components.find(typeName) != components.end() && "Component not registered before use.");
 
-		return std::static_pointer_cast<SparseComponentArray<T>>(componentArrays[typeName]);
+		return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeName]);
 	}
 public: 
 
