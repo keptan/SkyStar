@@ -55,13 +55,13 @@ void benchmark (void)
 	};
 	std::cout << "random access write, array" << '\n';
 	const auto rArray = [&](){
-		for(int i = 0; i < 100; i++) regular[std::experimental::randint(0, 63999)] = 1;
+		for(int i = 0; i < 2500; i++) regular[std::experimental::randint(0, 63999)] = 1;
 	};
 	time(rArray);
 
 	std::cout << "random access write, sparse array" << '\n';
 	const auto rsArray = [&](){
-		for(int i = 0; i < 100; i++) sparse.insert(std::experimental::randint(0, 63999), 1);
+		for(int i = 0; i < 2500; i++) sparse.insert(std::experimental::randint(0, 63999), 1);
 	};
 	time(rsArray);
 
@@ -84,9 +84,29 @@ void benchmark (void)
 	time(seqSparse);
 }
 
+struct pos 
+{
+	int x = 0;
+	int y = 0;
+};
+
+struct color 
+{
+	using StorageStrategy = SparseArray<color>;
+
+	int r = 255; 
+	int g = 255; 
+	int b = 255;
+};
+
 auto main (void) -> int 
 {
-benchmark();
+	WorldSystems world;
+	world.registerComponent<color>();
+	world.registerComponent<pos>();
+
+	auto ent = world.newEntity();
+	world.addComponent<color>(ent, {255, 255, 255});
 }
 
 
