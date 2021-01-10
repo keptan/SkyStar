@@ -90,23 +90,65 @@ struct pos
 	int y = 0;
 };
 
-struct color 
+struct sprite 
 {
-	using StorageStrategy = SparseArray<color>;
-
-	int r = 255; 
-	int g = 255; 
-	int b = 255;
+	using StorageStrategy = SparseArray<sprite>;
+	std::shared_ptr<Texture> sheet;
+	int size = 32;
 };
+
+struct renderTag
+{};
 
 auto main (void) -> int 
 {
-	WorldSystems world;
-	world.registerComponent<color>();
-	world.registerComponent<pos>();
+	SDL sdl(SDL_INIT_VIDEO);
 
-	auto ent = world.newEntity();
-	world.addComponent<color>(ent, {255, 255, 255});
+	Window window("demo", 
+			SDL_WINDOWPOS_UNDEFINED, 
+			SDL_WINDOWPOS_UNDEFINED,
+			640, 480,
+			SDL_WINDOW_RESIZABLE);
+
+	Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
+	WorldSystems world;
+	world.registerComponent<pos>();
+	world.registerComponent<renderTag>();
+	world.registerComponent<sprite>();
+
+	for(int i = 0; i < 50; i++)
+	{
+		auto e = world.newEntity();
+		world.addComponent<renderTag>(i, {});
+		world.addComponent<sprite>(i, {std::make_shared<Texture>(rendr, DATA_PATH "/lala.png"), 32});
+		world.addComponent<pos>(i, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
+	}
+
+
+	auto sig = world.createSignature<sprite, renderTag, pos>();
+	auto ents = world.signatureScan(sig);
+
+	const auto blit = [&](){
+	for(const auto i : ents)
+	{
+		auto space = world.getComponents<pos>()->get(i);
+		auto texture = world.getComponents<sprite>()->get(i);
+
+		rendr.Copy(*texture.sheet, Rect(0, 0, texture.size, texture.size), Rect(space.x, space.y, 32, 32));
+	};};
+
+	const auto time = [&](const auto f)
+	{
+		auto start = std::chrono::high_resolution_clock::now();
+		f();
+		auto stop = std::chrono::high_resolution_clock::now();
+		auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
+		std::cout << "function took: " << duration.count() << " milliseconds \n";
+	};
+
+	time(blit);
+	rendr.Present();
+	SDL_Delay(5000);
 }
 
 
