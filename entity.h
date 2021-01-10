@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <memory>
 #include <type_traits>
+#include <vector>
 
 using Entity = std::uint32_t;
 using ComponentType = std::uint8_t;
@@ -407,6 +408,10 @@ class ComponentMan
 
 public: 
 
+	ComponentMan (void)
+		: ccounter(0)
+	{}
+
 	template <typename T>
 	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
 	{
@@ -424,7 +429,7 @@ public:
 
 		componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
 
-		return ++ccounter;
+		return ccounter++;
 	}
 
 	template <typename T>
@@ -501,6 +506,26 @@ class WorldSystems
 		auto& signature = entities.touch(e);
 		signature.set(components.getId<T>(), false);
 	}
+
+	std::vector<size_t> signatureScan (const Signature s)
+	{
+		std::vector<size_t> acc;
+		for(size_t i = 0; i < entities.size(); i++)
+		{
+			if((entities.touch(i) & s) == s)	acc.push_back(i);
+		}
+
+		return acc;
+	}
+
+	template<typename... Args>
+	Signature createSignature (void)
+	{
+		Signature out;
+		(out.set(getComponentId<Args>()), ... );
+		return out;
+	}
+
 
 	template <typename T>
 	auto getComponents (void)
