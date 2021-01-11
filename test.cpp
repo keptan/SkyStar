@@ -104,8 +104,9 @@ struct pos
 
 struct velocity
 {
-	int x = 0;
-	int y = 0;
+	float vt;
+	float angle;
+
 };
 
 struct sprite 
@@ -131,10 +132,14 @@ void moveSystem (WorldSystems& world, unsigned int dt)
 		auto& s  = space->get(i);
 		auto&  v   = vel->get(i);
 
-		s.x += (float(dt) / 1000) * v.x;
-		s.y += (float(dt) / 1000) * v.y;
+		s.y += (float(dt) / 1000) * -v.vt * std::cos(v.angle);
+		s.x += (float(dt) / 1000) * v.vt * std::sin(v.angle);
 		if(s.x > 640) s.x = -32;
 		if(s.y > 480) s.y = -32;
+		if(s.x < -32) s.x = 640;
+		if(s.y < -32) s.y = 480;
+
+		v.angle += 0.01;
 	}
 }
 
@@ -154,9 +159,6 @@ void renderSystem (WorldSystems& world, unsigned int dt, Renderer& rendr)
 	}
 	rendr.Present();
 }
-
-
-
 
 
 auto main (void) -> int 
@@ -183,7 +185,7 @@ auto main (void) -> int
 		world.addComponent<renderTag>(i, {});
 		world.addComponent<sprite>(i, {std::make_shared<Texture>(rendr, DATA_PATH "/lala.png"), 32});
 		world.addComponent<pos>(i, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-		world.addComponent<velocity>(i, {std::experimental::randint(-300, 300), std::experimental::randint(-300, 300)});
+		world.addComponent<velocity>(i, {std::experimental::randint(50, 300), std::experimental::randint(0, 0)});
 	}
 
 
