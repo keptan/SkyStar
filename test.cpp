@@ -82,7 +82,7 @@ void moveSystem (WorldSystems& world, GameState& state)
 		if(s.x < -32) s.x = 640;
 		if(s.y < -32) s.y = 480;
 
-		v.angle += 0.01;
+		v.angle += 0.01 * std::experimental::randint(-10, 10);
 	}
 }
 
@@ -154,7 +154,7 @@ auto main (void) -> int
 	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
 	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
 
-	for(int i = 0; i < 60; i++)
+	for(int i = 0; i < 6000; i++)
 	{
 		auto e = world.newEntity();
 		world.addComponent<renderTag>(i, {});
@@ -168,19 +168,27 @@ auto main (void) -> int
 	GameState state; 
 	state.time = SDL_GetTicks();
 
-	for(int i = 0; i < 1000; i++)
+	unsigned int averageFrameTime;
+
+	for(int i = 0; i < 100; i++)
 	{
-	auto times = SDL_GetTicks();
-	state.frameTime = times - state.time;
-	state.time = times;
+	const auto tick = SDL_GetTicks();
+	state.frameTime = tick - state.time;
+	state.time = tick;
+
 	moveSystem(world, state);
 	animationSystem(world, state);
 	renderWall(world, state, rendr, wallpaper);
 	renderSystem(world, state, rendr);
 
 	state.frameCount++;
-	SDL_Delay(16 < state.frameTime ? 16 : 16 - state.frameTime);
+	const auto endFrame = SDL_GetTicks();
+	const auto frameCost = endFrame - tick;
+	averageFrameTime+= frameCost;
+	SDL_Delay(frameCost > 16 ? 16 : 16 - frameCost);
 	}
+	std::cout << averageFrameTime / state.frameCount << '\n';
+
 
 }
 
