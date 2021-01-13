@@ -86,7 +86,7 @@ void moveSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void renderWall (Renderer& rendr, std::shared_ptr<Texture> t)
+void renderWall (WorldSystems& world, GameState& state, Renderer& rendr, std::shared_ptr<Texture> t)
 {
 	for(int x = 0; x < 640; x += 64)
 	{
@@ -122,12 +122,12 @@ void animationSystem (WorldSystems& world, GameState& state)
 	for(const auto i : ents)
 	{
 		auto& texture = world.getComponents<sprite>()->get(i);
-		if(!state.frameCount % 30 )
+		if(state.frameCount % 20 == 0)
 		{
-			texture.frame = texture.frame + 1;
-
+			texture.frame++; 
 			if(texture.frame > texture.frames) texture.frame = 0;
 		}
+
 	}
 }
 
@@ -159,7 +159,7 @@ auto main (void) -> int
 		auto e = world.newEntity();
 		world.addComponent<renderTag>(i, {});
 		world.addComponent<animationTag>(i, {});
-		world.addComponent<sprite>(i, {fire, 16, 8, 1, 1});
+		world.addComponent<sprite>(i, {fire, 16, 8, 1, 0});
 		world.addComponent<pos>(i, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
 		world.addComponent<velocity>(i, {std::experimental::randint(50, 300), std::experimental::randint(0, 0)});
 	}
@@ -175,7 +175,7 @@ auto main (void) -> int
 	state.time = times;
 	moveSystem(world, state);
 	animationSystem(world, state);
-	renderWall(rendr, wallpaper);
+	renderWall(world, state, rendr, wallpaper);
 	renderSystem(world, state, rendr);
 
 	state.frameCount++;
