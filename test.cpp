@@ -86,12 +86,24 @@ void moveSystem (WorldSystems& world, GameState& state)
 	}
 }
 
+void renderWall (Renderer& rendr, std::shared_ptr<Texture> t)
+{
+	for(int x = 0; x < 640; x += 64)
+	{
+		for(int y = 0; y < 480; y+= 64)
+		{
+			rendr.Copy(*t, Rect(0, 0, 64, 64), Rect(x, y, 64, 64));
+		}
+	}
+}
+
+
 void renderSystem (WorldSystems& world, GameState& state, Renderer& rendr)
 {
 	auto sig = world.createSignature<pos, sprite, renderTag>();
 	auto ents = world.signatureScan(sig);
 
-	rendr.FillRect(0, 0, 640, 480);
+	//rendr.FillRect(0, 0, 640, 480);
 	for(const auto i : ents)
 	{
 		auto& space = world.getComponents<pos>()->get(i);
@@ -140,6 +152,7 @@ auto main (void) -> int
 
 	auto player = std::make_shared<Texture>(rendr, DATA_PATH "/lala.png");
 	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
+	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
 
 	for(int i = 0; i < 60; i++)
 	{
@@ -162,6 +175,7 @@ auto main (void) -> int
 	state.time = times;
 	moveSystem(world, state);
 	animationSystem(world, state);
+	renderWall(rendr, wallpaper);
 	renderSystem(world, state, rendr);
 
 	state.frameCount++;
