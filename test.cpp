@@ -11,8 +11,48 @@
 #include "entity.h"
 #include <random>
 #include <chrono>
+#include <type_traits>
 
 using namespace SDL2pp;
+
+enum class InputMask
+{
+	None = 0x00,
+	Up	 = 1 << 1,
+	Down = 1 << 2,
+	Left = 1 << 3,
+	Right = 1 << 4,
+	Attack = 1 << 5,
+};
+
+inline InputMask operator | (InputMask lhs, InputMask rhs)
+{
+	using T = std::underlying_type_t<InputMask>;
+	return static_cast<InputMask>(static_cast<T>(lhs) | static_cast<T>(rhs));
+}
+
+inline InputMask operator & (InputMask lhs, InputMask rhs)
+{
+	using T = std::underlying_type_t<InputMask>;
+	return static_cast<InputMask>(static_cast<T>(lhs) & static_cast<T>(rhs));
+}
+
+inline InputMask& operator ^= (InputMask& lhs, InputMask rhs)
+{	
+	using T = std::underlying_type_t<InputMask>;
+	lhs = static_cast<InputMask>(static_cast<T>(lhs) ^ static_cast<T>(rhs));
+	return lhs;
+}
+
+inline InputMask& operator |= (InputMask& lhs, InputMask rhs)
+{	
+	using T = std::underlying_type_t<InputMask>;
+	lhs = static_cast<InputMask>(static_cast<T>(lhs) | static_cast<T>(rhs));
+	return lhs;
+}
+
+
+
 
 
 template <typename F>
@@ -27,6 +67,8 @@ unsigned int time (const F f)
 
 struct GameState
 {
+	InputMask input = InputMask::None;
+
 	unsigned int frameCount = 0;
 	unsigned int time = 0;
 	unsigned int frameTime = 0;
@@ -74,6 +116,7 @@ void moveSystem (WorldSystems& world, GameState& state)
 	{
 		auto& s  = space->get(i);
 		auto&  v   = vel->get(i);
+		if((state.input & InputMask::Up) == InputMask::Up) v.vt *= 2;
 
 		s.y += (float(state.frameTime) / 1000) * -v.vt * std::cos(v.angle);
 		s.x += (float(state.frameTime) / 1000) * v.vt * std::sin(v.angle);
@@ -131,6 +174,29 @@ void animationSystem (WorldSystems& world, GameState& state)
 	}
 }
 
+void sweeper (WorldSystems& world, GameState& state)
+{
+	SDL_Event event;
+	while(SDL_PollEvent(&event))
+	{
+		 if (event.type == SDL_KEYDOWN) 
+		 {
+				switch (event.key.keysym.sym) 
+				{
+					case SDLK_w: state.input |= InputMask::Up; break;
+				}
+		} 
+		else if (event.type == SDL_KEYUP)
+		{
+				switch (event.key.keysym.sym)
+				{
+					case SDLK_w: state.input ^= InputMask::Up; break;
+				}
+		}
+	}
+}
+
+
 auto main (void) -> int 
 {
 	SDL sdl(SDL_INIT_VIDEO);
@@ -150,11 +216,10 @@ auto main (void) -> int
 	world.registerComponent<sprite>();
 	world.registerComponent<velocity>();
 
-	auto player = std::make_shared<Texture>(rendr, DATA_PATH "/lala.png");
 	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
 	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
 
-	for(int i = 0; i < 6000; i++)
+	for(int i = 0; i < 100; i++)
 	{
 		auto e = world.newEntity();
 		world.addComponent<renderTag>(i, {});
@@ -176,6 +241,7 @@ auto main (void) -> int
 	state.frameTime = tick - state.time;
 	state.time = tick;
 
+	sweeper(world, state);
 	moveSystem(world, state);
 	animationSystem(world, state);
 	renderWall(world, state, rendr, wallpaper);
