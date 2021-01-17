@@ -65,3 +65,6 @@ struct renderTag
 
 struct animationTag
 {};
+
+struct playerTag
+{};
