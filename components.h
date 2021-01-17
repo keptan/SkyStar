@@ -1,6 +1,8 @@
 #pragma once 
 #include "star.h"
 #include <SDL2pp/Renderer.hh>
+#include <cmath>
+#include <math.h>
 
 using namespace SDL2pp;
 
@@ -16,8 +18,34 @@ struct pos
 
 struct velocity
 {
-	float vt;
-	float angle;
+	int dx = 0;
+	int dy = 0;
+
+	double magnitude (void)
+	{
+		//a^2 + b^2 = c^2
+		return std::sqrt( std::pow(dx, 2) +  std::pow(dy, 2));
+	}
+
+	velocity operator+ (const velocity& rhs) const
+	{
+		velocity out;
+		out.dx = dx + rhs.dx;
+		out.dy = dy + rhs.dy;
+		return out;
+	}
+
+	velocity normalize (double scale = 1)
+	{
+		velocity out;
+		const auto m = magnitude();
+		if(m > 0)
+		{
+			out.dx = (dx / m) * scale;
+			out.dy = (dy / m) * scale;
+		}
+		return out;
+	}
 
 };
 

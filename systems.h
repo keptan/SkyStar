@@ -17,19 +17,22 @@ void moveSystem (WorldSystems& world, GameState& state)
 	{
 		auto& s  = space->get(i);
 		auto&  v   = vel->get(i);
-		v.angle = 0;
-		if((state.input & InputMask::Up) == InputMask::Up) v.angle += 0;
-		if((state.input & InputMask::Down) == InputMask::Down) v.angle = 0;
-		if((state.input & InputMask::Up) == InputMask::Up) v.angle = 0;
 
-		s.y += (float(state.frameTime) / 1000) * -v.vt * std::cos(v.angle);
-		s.x += (float(state.frameTime) / 1000) * v.vt * std::sin(v.angle);
+		velocity dir{0, 0};
+		if((state.input & InputMask::Up) == InputMask::Up) dir = dir + velocity{0, -50};
+		if((state.input & InputMask::Left) == InputMask::Left) dir = dir + velocity{-50, 0};
+		if((state.input & InputMask::Right) == InputMask::Right) dir = dir + velocity{50, 0};
+		if((state.input & InputMask::Down) == InputMask::Down) dir = dir + velocity{0, 50};	
+
+		dir = dir.normalize(50);
+
+		s.x += (double(state.frameTime) / 1000) * (double (dir.dx));
+		s.y += (double(state.frameTime) / 1000) * (double (dir.dy));
 		if(s.x > 640) s.x = -32;
 		if(s.y > 480) s.y = -32;
 		if(s.x < -32) s.x = 640;
 		if(s.y < -32) s.y = 480;
 
-		v.angle += 0.01 * std::experimental::randint(-10, 10);
 	}
 }
 
