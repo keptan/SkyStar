@@ -10,6 +10,7 @@
 #include <random>
 #include <chrono>
 #include <type_traits>
+#include "components.h"
 #include "systems.h"
 
 using namespace SDL2pp;
@@ -46,18 +47,30 @@ auto main (void) -> int
 	world.registerComponent<animationTag>();
 	world.registerComponent<sprite>();
 	world.registerComponent<velocity>();
+	world.registerComponent<playerTag>();
 
+
+	auto lala	= std::make_shared<Texture>(rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
 	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
 
+	auto e = world.newEntity();
+	world.addComponent<renderTag>(e, {});
+	world.addComponent<animationTag>(e, {});
+	world.addComponent<sprite>(e, {lala, 37, 21, 7, 0});
+	world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
+	world.addComponent<velocity>(e, {0, 0});
+	world.addComponent<playerTag>(e, {});
+
+
 	for(int i = 0; i < 100; i++)
 	{
-		auto e = world.newEntity();
-		world.addComponent<renderTag>(i, {});
-		world.addComponent<animationTag>(i, {});
-		world.addComponent<sprite>(i, {fire, 16, 8, 1, 0});
-		world.addComponent<pos>(i, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-		world.addComponent<velocity>(i, {std::experimental::randint(10, 10), std::experimental::randint(0, 0)});
+		e = world.newEntity();
+		world.addComponent<renderTag>(e, {});
+		world.addComponent<animationTag>(e, {});
+		world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
+		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
+		world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
 	}
 
 
@@ -73,6 +86,7 @@ auto main (void) -> int
 	state.time = tick;
 
 	sweeper(world, state);
+	playerMove(world, state);
 	moveSystem(world, state);
 	animationSystem(world, state);
 	renderWall(world, state, rendr, wallpaper);
