@@ -9,7 +9,7 @@
 # You should have received a copy of the CC0 Public Domain Dedication along with
 # this software. If not, see <http://creativecommons.org/publicdomain/zero/1.0/>.
 
-PROJECT(SDL2pp-tutorial)
+PROJECT(SkyStar)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
@@ -20,7 +20,7 @@ set(CMAKE_CXX_STANDARD 20)
 ADD_SUBDIRECTORY(SDL2pp)
 
 # add compilation flags
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++20 -O3")
 ADD_DEFINITIONS(-DDATA_PATH="${PROJECT_SOURCE_DIR}/data")
 INCLUDE_DIRECTORIES(${SDL2PP_INCLUDE_DIRS})
 
