@@ -48,10 +48,12 @@ auto main (void) -> int
 	world.registerComponent<sprite>();
 	world.registerComponent<velocity>();
 	world.registerComponent<playerTag>();
+	world.registerComponent<collision>();
 
 
 	auto lala	= std::make_shared<Texture>(rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
+	auto greenFire	= std::make_shared<Texture>(rendr, DATA_PATH "/greenFlame.png");
 	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
 
 	auto e = world.newEntity();
@@ -61,6 +63,7 @@ auto main (void) -> int
 	world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
 	world.addComponent<velocity>(e, {0, 0});
 	world.addComponent<playerTag>(e, {});
+	world.addComponent<collision>(e, {1});
 
 
 	for(int i = 0; i < 100; i++)
@@ -71,24 +74,29 @@ auto main (void) -> int
 		world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
 		world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
+		world.addComponent<collision>(e, {1});
 	}
 
 
 	GameState state; 
+	SpaceGrid grid (world, 160, 640, 480);
 	state.time = SDL_GetTicks();
 
 	unsigned int averageFrameTime;
 
-	for(int i = 0; i < 400; i++)
+	for(int i = 0; i < 600; i++)
 	{
 	const auto tick = SDL_GetTicks();
 	state.frameTime = tick - state.time;
 	state.time = tick;
 
+	grid.regen(world);
+
 	sweeper(world, state);
 	playerMove(world, state);
 	moveSystem(world, state);
 	animationSystem(world, state);
+	collisionSphere(world, state, grid, greenFire, fire);
 	renderWall(world, state, rendr, wallpaper);
 	renderSystem(world, state, rendr);
 
