@@ -102,19 +102,28 @@ void animationSystem (WorldSystems& world, GameState& state)
 	}
 }
 
+
+
+
+
+	
+
 struct SpaceGrid 
 {
 	std::vector< std::vector<Entity>> res;
 	const int fidelity;
+	const int width; 
+	const int height;
 
 	SpaceGrid (WorldSystems& world, int fidelity, int width, int height) 
-		: fidelity(fidelity)
+		: fidelity(fidelity), width(width), height(height)
 	{
-		const int boxes = width * height / fidelity;
+		const int boxes = 1 + ((width / fidelity)  * (height / fidelity));
 		res.reserve(boxes);
+		for(int i = 0; i < boxes; i++) res.push_back({});
 	}
 
-	void regen (WorldSystems& world, int fidelity, int width, int height) 
+	void regen (WorldSystems& world) 
 	{
 		auto sig  = world.createSignature<pos, collision>();
 		auto ents = world.signatureScan(sig);
@@ -123,21 +132,56 @@ struct SpaceGrid
 		{
 			v.clear();
 		}
+
 		
 		for(const auto i : ents)
 		{
 			const auto& space = world.getComponents<pos>()->get(i);	
 			const auto& bound = world.getComponents<collision>()->get(i);	
 
-			const int place = (space.x / fidelity) * (space.y / fidelity);
-			res[place].push_back(i);
+			if(space.x < 0 || space.y < 0) continue;
+
+			const int place = (space.x / fidelity) + ((space.y / fidelity) * (height / fidelity));
+			res.at(place).push_back(i);
 		}
 	}
 
-	const std::vector<Entity>& adjacent (const collision& c, const pos& p) const
+	const std::vector<Entity>& adjacent (const collision& c, const pos& space) const
 	{
-		const int place = (p.x / fidelity) * (p.y / fidelity);
-		return res[place];
+
+		const int place = (space.x / fidelity) + ((space.y / fidelity) * (height / fidelity));
+		return res.at(place);
+	
 	}
 };
 
+void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, std::shared_ptr<Texture> t, std::shared_ptr<Texture> normal)
+{
+
+	auto sig = world.createSignature<sprite, pos, collision>();
+	auto ents = world.signatureScan(sig);
+
+	auto player = world.signatureScan( world.createSignature<playerTag, pos, collision>());
+	for(const auto p : player)
+	{
+		for(const auto e : ents)
+		{
+			if(e == p) continue;
+
+			auto& s = world.getComponents<sprite>()->get(e);
+			const auto position   = world.getComponents<pos>()->get(e);
+			if(position.x < 0 || position.y < 0 ) continue;
+			const auto col    = world.getComponents<collision>()->get(e);
+			const auto& adjacent = space.adjacent(col, position);
+
+			if(std::find(adjacent.begin(), adjacent.end(), p) != adjacent.end())
+			{
+				s.sheet = t;
+			}
+			else 
+			{
+				s.sheet = normal;
+			}
+		}
+	}
+}
