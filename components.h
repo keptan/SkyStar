@@ -59,6 +59,12 @@ struct sprite
 	int frame  = 0;
 };
 
+
+struct collision
+{
+	int radius = 1;
+};
+
 //tag components too
 struct renderTag
 {};
@@ -68,3 +74,4 @@ struct animationTag
 
 struct playerTag
 {};
+
