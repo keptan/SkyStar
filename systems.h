@@ -1,6 +1,7 @@
 #pragma once 
 #include "engine.h"
 #include "components.h"
+#include "star.h"
 #include <SDL2pp/Renderer.hh>
 #include <random>
 //systems are functions that operate on a subset of entities 
@@ -100,3 +101,43 @@ void animationSystem (WorldSystems& world, GameState& state)
 
 	}
 }
+
+struct SpaceGrid 
+{
+	std::vector< std::vector<Entity>> res;
+	const int fidelity;
+
+	SpaceGrid (WorldSystems& world, int fidelity, int width, int height) 
+		: fidelity(fidelity)
+	{
+		const int boxes = width * height / fidelity;
+		res.reserve(boxes);
+	}
+
+	void regen (WorldSystems& world, int fidelity, int width, int height) 
+	{
+		auto sig  = world.createSignature<pos, collision>();
+		auto ents = world.signatureScan(sig);
+
+		for(auto& v : res)
+		{
+			v.clear();
+		}
+		
+		for(const auto i : ents)
+		{
+			const auto& space = world.getComponents<pos>()->get(i);	
+			const auto& bound = world.getComponents<collision>()->get(i);	
+
+			const int place = (space.x / fidelity) * (space.y / fidelity);
+			res[place].push_back(i);
+		}
+	}
+
+	const std::vector<Entity>& adjacent (const collision& c, const pos& p) const
+	{
+		const int place = (p.x / fidelity) * (p.y / fidelity);
+		return res[place];
+	}
+};
+
