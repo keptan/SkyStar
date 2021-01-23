@@ -115,10 +115,10 @@ struct SpaceGrid
 	const int width; 
 	const int height;
 
-	SpaceGrid (WorldSystems& world, int fidelity, int width, int height) 
+	SpaceGrid (WorldSystems& world, const int fidelity, const int width, const int height) 
 		: fidelity(fidelity), width(width), height(height)
 	{
-		const int boxes = 1 + ((width / fidelity)  * (height / fidelity));
+		const int boxes =  ((width +  1 / fidelity) + 1)  * ((height  / fidelity) + 1);
 		res.reserve(boxes);
 		for(int i = 0; i < boxes; i++) res.push_back({});
 	}
@@ -140,8 +140,9 @@ struct SpaceGrid
 			const auto& bound = world.getComponents<collision>()->get(i);	
 
 			if(space.x < 0 || space.y < 0) continue;
+			if(space.x > 640 || space.y > 480) continue;
 
-			const int place = (space.x / fidelity) + ((space.y / fidelity) * (height / fidelity));
+			const int place = ((int(space.y) / fidelity) * (width / fidelity)) + (int(space.x) / fidelity);
 			res.at(place).push_back(i);
 		}
 	}
@@ -149,7 +150,7 @@ struct SpaceGrid
 	const std::vector<Entity>& adjacent (const collision& c, const pos& space) const
 	{
 
-		const int place = (space.x / fidelity) + ((space.y / fidelity) * (height / fidelity));
+		const int place = (( int(space.y) / fidelity) * (width / fidelity)) + (int(space.x) / fidelity);
 		return res.at(place);
 	
 	}
@@ -169,8 +170,10 @@ void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, s
 			if(e == p) continue;
 
 			auto& s = world.getComponents<sprite>()->get(e);
+
 			const auto position   = world.getComponents<pos>()->get(e);
 			if(position.x < 0 || position.y < 0 ) continue;
+
 			const auto col    = world.getComponents<collision>()->get(e);
 			const auto& adjacent = space.adjacent(col, position);
 
