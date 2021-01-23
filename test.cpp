@@ -66,15 +66,20 @@ auto main (void) -> int
 	world.addComponent<collision>(e, {1});
 
 
-	for(int i = 0; i < 100; i++)
+	for(int x = 0; x < 640; x += 10)
 	{
+		for(int y = 0; y < 480; y += 10)
+		{
+
 		e = world.newEntity();
 		world.addComponent<renderTag>(e, {});
 		world.addComponent<animationTag>(e, {});
 		world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
-		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-		world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
+		world.addComponent<pos>(e, {x, y});
+//		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
+	//	world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
 		world.addComponent<collision>(e, {1});
+		}
 	}
 
 
