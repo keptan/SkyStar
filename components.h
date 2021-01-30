@@ -84,6 +84,3 @@ struct animationTag
 
 struct playerTag
 {};
-
-struct pathTag
-{};
