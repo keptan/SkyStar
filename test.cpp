@@ -49,6 +49,7 @@ auto main (void) -> int
 	world.registerComponent<velocity>();
 	world.registerComponent<playerTag>();
 	world.registerComponent<collision>();
+	world.registerComponent<path>();
 
 
 	auto lala	= std::make_shared<Texture>(rendr, DATA_PATH "/lala_flying.png");
@@ -64,22 +65,20 @@ auto main (void) -> int
 	world.addComponent<velocity>(e, {0, 0});
 	world.addComponent<playerTag>(e, {});
 	world.addComponent<collision>(e, {50});
+	world.addComponent<path>(e, {0, 7000, 1, {{25, 100}, {400, 500}, {200, 200}, {10, 10}, {480, 480}, {10, 160}, {160, 10}}});
 
 
-	for(int x = 0; x < 640; x += 10)
+	for(int x = 0; x < 100; x ++)
 	{
-		for(int y = 0; y < 480; y += 10)
-		{
+	
 
 		e = world.newEntity();
 		world.addComponent<renderTag>(e, {});
 		world.addComponent<animationTag>(e, {});
 		world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
-		world.addComponent<pos>(e, {x, y});
-//		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-	//	world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
+		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
+		world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
 		world.addComponent<collision>(e, {5});
-		}
 	}
 
 
@@ -100,6 +99,7 @@ auto main (void) -> int
 	sweeper(world, state);
 	playerMove(world, state);
 	moveSystem(world, state);
+	pathSystem(world, state);
 	animationSystem(world, state);
 	collisionSphere(world, state, grid, greenFire, fire);
 	renderWall(world, state, rendr, wallpaper);
