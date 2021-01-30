@@ -63,7 +63,7 @@ auto main (void) -> int
 	world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
 	world.addComponent<velocity>(e, {0, 0});
 	world.addComponent<playerTag>(e, {});
-	world.addComponent<collision>(e, {1});
+	world.addComponent<collision>(e, {50});
 
 
 	for(int x = 0; x < 640; x += 10)
@@ -78,13 +78,13 @@ auto main (void) -> int
 		world.addComponent<pos>(e, {x, y});
 //		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
 	//	world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
-		world.addComponent<collision>(e, {1});
+		world.addComponent<collision>(e, {5});
 		}
 	}
 
 
-	GameState state; 
-	SpaceGrid grid (world, 160, 640, 480);
+	GameState state;
+	SpaceGrid grid (world, 40, 640, 480);
 	state.time = SDL_GetTicks();
 
 	unsigned int averageFrameTime;
