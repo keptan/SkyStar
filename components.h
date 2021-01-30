@@ -4,6 +4,9 @@
 #include <cmath>
 #include <math.h>
 
+#define PATH_MODE_LINEAR 0
+#define PATH_MODE_BEZIER 1
+
 using namespace SDL2pp;
 
 //in an ECS than components are just raw data
@@ -49,6 +52,14 @@ struct velocity
 
 };
 
+struct path
+{
+	int start_time = 0;
+	int finish_time = 30000;
+	int mode = PATH_MODE_LINEAR; 
+	std::vector<pos> nodes = {};
+};
+	
 struct sprite 
 {
 	using StorageStrategy = SparseArray<sprite>;
@@ -58,7 +69,6 @@ struct sprite
 	int frames = 0;
 	int frame  = 0;
 };
-
 
 struct collision
 {
@@ -75,3 +85,5 @@ struct animationTag
 struct playerTag
 {};
 
+struct pathTag
+{};

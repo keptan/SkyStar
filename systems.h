@@ -2,7 +2,9 @@
 #include "engine.h"
 #include "components.h"
 #include "star.h"
+#include "paths.h"
 #include <SDL2pp/Renderer.hh>
+#include <vector>
 #include <random>
 //systems are functions that operate on a subset of entities 
 
@@ -30,7 +32,6 @@ void moveSystem (WorldSystems& world, GameState& state)
 		}
 		if(s.x < -32) s.x = 640;
 		if(s.y < -32) s.y = 480;
-
 	}
 }
 
@@ -68,6 +69,30 @@ void playerMove (WorldSystems& world, GameState& state)
 	auto space = world.getComponents<pos>();
 }
 
+void pathSystem (WorldSystems& world, GameState& state)
+{
+	auto sig = world.createSignature<path>();
+	auto ents = world.signatureScan(sig);
+	auto space = world.getComponents<pos>();
+	auto paths = world.getComponents<path>();
+
+	for(const auto i : ents)
+	{
+		auto& s = space->get(i);
+		auto& p = paths->get(i);
+
+		if ( state.time < p.start_time ) continue;
+
+		if      ( p.mode == PATH_MODE_LINEAR ) 
+		{
+			s = linearPath( state.time - p.start_time, p.finish_time, p.nodes );
+		} 
+		else if ( p.mode == PATH_MODE_BEZIER ) 
+		{
+			s = bezierPath( state.time - p.start_time, p.finish_time, p.nodes );
+		}
+	}
+}
 
 void renderSystem (WorldSystems& world, GameState& state, Renderer& rendr)
 {
@@ -101,12 +126,6 @@ void animationSystem (WorldSystems& world, GameState& state)
 
 	}
 }
-
-
-
-
-
-	
 
 struct SpaceGrid 
 {
