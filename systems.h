@@ -118,9 +118,43 @@ struct SpaceGrid
 	SpaceGrid (WorldSystems& world, const int fidelity, const int width, const int height) 
 		: fidelity(fidelity), width(width), height(height)
 	{
-		const int boxes =  ((width +  1 / fidelity) + 1)  * ((height  / fidelity) + 1);
+		
+		assert((width % fidelity == 0 && height % fidelity == 0) && "Fidelity must be a common divisor of width and height");
+		const int boxes = (width * height) / (fidelity * fidelity);
 		res.reserve(boxes);
 		for(int i = 0; i < boxes; i++) res.push_back({});
+	}
+
+	bool collides (const int place, const collision& bound, const pos& space) const
+	{
+		int px = (place * fidelity) % width;
+		int py = ((place * fidelity) / width) * fidelity;
+
+		int distX = std::abs(space.x - px - fidelity / 2);
+		int distY = std::abs(space.y - py - fidelity / 2);
+
+		if (distX > (fidelity /2 + bound.radius)) return false;
+		if (distY > (fidelity/2)) return false;
+
+		if (distX <= (fidelity / 2)) return true;
+		if (distY <= (fidelity / 2)) return true;
+
+		int dx = distX - fidelity/2;
+		int dy = distY - fidelity/2;
+
+		return (dx*dx+dy*dy <= (bound.radius * bound.radius));
+	}
+
+		
+
+	void insert (const int ent, const collision& c, const pos& space)
+	{
+		const int boxes = (width * height) / (fidelity * fidelity);
+		for(int i = 0; i < boxes; i++)
+		{
+			if(collides(i, c, space))
+				res.at(i).push_back(ent);
+		}
 	}
 
 	void regen (WorldSystems& world) 
@@ -139,20 +173,20 @@ struct SpaceGrid
 			const auto& space = world.getComponents<pos>()->get(i);	
 			const auto& bound = world.getComponents<collision>()->get(i);	
 
-			if(space.x < 0 || space.y < 0) continue;
-			if(space.x > 640 || space.y > 480) continue;
-
-			const int place = ((int(space.y) / fidelity) * (width / fidelity)) + (int(space.x) / fidelity);
-			res.at(place).push_back(i);
+			insert(i, bound, space);
 		}
 	}
 
-	const std::vector<Entity>& adjacent (const collision& c, const pos& space) const
+	const std::vector<Entity> adjacent (const collision& c, const pos& space) const
 	{
-
-		const int place = (( int(space.y) / fidelity) * (width / fidelity)) + (int(space.x) / fidelity);
-		return res.at(place);
-	
+		std::vector<Entity> acc;
+		const int boxes = (width * height) / (fidelity * fidelity);
+		for(int i = 0; i < boxes; i++)
+		{
+			if(collides(i, c, space))
+				acc.insert(acc.end(), res.at(i).begin(), res.at(i).end());
+		}
+		return acc;
 	}
 };
 
@@ -162,29 +196,29 @@ void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, s
 	auto sig = world.createSignature<sprite, pos, collision>();
 	auto ents = world.signatureScan(sig);
 
+
 	auto player = world.signatureScan( world.createSignature<playerTag, pos, collision>());
 	for(const auto p : player)
 	{
 		for(const auto e : ents)
 		{
 			if(e == p) continue;
+			auto& s = world.getComponents<sprite>()->get(e);
+			s.sheet = normal;
+		}
+
+		const auto position = world.getComponents<pos>()->get(p);
+		if(position.x < 0 || position.y < 0 ) continue;
+		if(position.x > 640 || position.y > 480 ) continue;
+		const auto col = world.getComponents<collision>()->get(p);
+
+		for(const auto e : space.adjacent(col, position))
+		{
+			if(e == p) continue;
 
 			auto& s = world.getComponents<sprite>()->get(e);
-
-			const auto position   = world.getComponents<pos>()->get(e);
-			if(position.x < 0 || position.y < 0 ) continue;
-
-			const auto col    = world.getComponents<collision>()->get(e);
-			const auto& adjacent = space.adjacent(col, position);
-
-			if(std::find(adjacent.begin(), adjacent.end(), p) != adjacent.end())
-			{
-				s.sheet = t;
-			}
-			else 
-			{
-				s.sheet = normal;
-			}
+			s.sheet = t;
+		
 		}
 	}
 }
