@@ -14,6 +14,11 @@ struct pos
 {
 	float x = 0;
 	float y = 0;
+
+	int distance (const pos& p) const
+	{
+		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
+	}
 };
 
 struct velocity
