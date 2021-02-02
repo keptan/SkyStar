@@ -150,21 +150,8 @@ struct SpaceGrid
 		int py = ((place * fidelity) / width) * fidelity;
 
 		Rectangle rect (Point(px, py), fidelity, fidelity);
-		return rect.collides(Circle(space, bound.radius));
-
-		int distX = std::abs(space.x - px - fidelity / 2);
-		int distY = std::abs(space.y - py - fidelity / 2);
-
-		if (distX > (fidelity /2 + bound.radius)) return false;
-		if (distY > (fidelity/2 + bound.radius)) return false;
-
-		if (distX <= (fidelity / 2)) return true;
-		if (distY <= (fidelity / 2)) return true;
-
-		int dx = distX - fidelity/2;
-		int dy = distY - fidelity/2;
-
-		return (dx*dx+dy*dy <= (bound.radius * bound.radius));
+		Circle circle (space, bound.radius);
+		return rect.collides(circle);
 	}
 
 		
@@ -242,7 +229,7 @@ void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, s
 			const auto pCol = world.getComponents<collision>()->get(e);
 			const auto pPos = world.getComponents<pos>()->get(e);
 
-			s.sheet = t;
+			if(pPos.distance(position) < 100) s.sheet = t;	
 		
 		}
 	}
