@@ -3,12 +3,12 @@
 #include "components.h"
 #include "star.h"
 #include "paths.h"
+#include "geometry.h"
 #include <SDL2pp/Renderer.hh>
 #include <vector>
 #include <random>
 //systems are functions that operate on a subset of entities 
 
-using namespace SDL2pp;
 void moveSystem (WorldSystems& world, GameState& state)
 {
 	auto sig = world.createSignature<pos, velocity>();
@@ -35,14 +35,14 @@ void moveSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void renderWall (WorldSystems& world, GameState& state, Renderer& rendr, std::shared_ptr<Texture> t)
+void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr, std::shared_ptr<SDL2pp::Texture> t)
 {
 	const int offset = state.frameCount % 64;
 	for(int x = -64; x < 640; x += 64)
 	{
 		for(int y = -64; y < 480; y+= 64)
 		{
-			rendr.Copy(*t, Rect(0, 0, 64, 64), Rect(x, y + offset, 64, 64));
+			rendr.Copy(*t, SDL2pp::Rect(0, 0, 64, 64), SDL2pp::Rect(x, y + offset, 64, 64));
 		}
 	}
 }
@@ -94,7 +94,7 @@ void pathSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void renderSystem (WorldSystems& world, GameState& state, Renderer& rendr)
+void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr)
 {
 	auto sig = world.createSignature<pos, sprite, renderTag>();
 	auto ents = world.signatureScan(sig);
@@ -105,7 +105,7 @@ void renderSystem (WorldSystems& world, GameState& state, Renderer& rendr)
 		auto& space = world.getComponents<pos>()->get(i);
 		auto& texture = world.getComponents<sprite>()->get(i);
 
-		rendr.Copy(*texture.sheet, Rect(0, texture.height * texture.frame, texture.width, texture.height), Rect(space.x, space.y, texture.width, texture.height));
+		rendr.Copy(*texture.sheet, SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), SDL2pp::Rect(space.x, space.y, texture.width, texture.height));
 	
 	}
 	rendr.Present();
@@ -209,7 +209,7 @@ struct SpaceGrid
 	}
 };
 
-void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, std::shared_ptr<Texture> t, std::shared_ptr<Texture> normal)
+void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, std::shared_ptr<SDL2pp::Texture> t, std::shared_ptr<SDL2pp::Texture> normal)
 {
 
 	auto sig = world.createSignature<sprite, pos, collision>();

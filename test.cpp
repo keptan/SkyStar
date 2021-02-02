@@ -13,7 +13,6 @@
 #include "components.h"
 #include "systems.h"
 
-using namespace SDL2pp;
 
 
 
@@ -31,16 +30,16 @@ unsigned int time (const F f)
 
 auto main (void) -> int 
 {
-	SDL sdl(SDL_INIT_VIDEO);
+	SDL2pp::SDL sdl(SDL_INIT_VIDEO);
 
 
-	Window window("demo", 
+	SDL2pp::Window window("demo", 
 			SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED,
 			640, 480,
 			SDL_WINDOW_RESIZABLE);
 
-	Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
+	SDL2pp::Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
 	WorldSystems world;
 	world.registerComponent<pos>();
 	world.registerComponent<renderTag>();
@@ -52,10 +51,10 @@ auto main (void) -> int
 	world.registerComponent<path>();
 
 
-	auto lala	= std::make_shared<Texture>(rendr, DATA_PATH "/lala_flying.png");
-	auto fire	= std::make_shared<Texture>(rendr, DATA_PATH "/flame.png");
-	auto greenFire	= std::make_shared<Texture>(rendr, DATA_PATH "/greenFlame.png");
-	auto wallpaper = std::make_shared<Texture>(rendr, DATA_PATH "/wall.png");
+	auto lala	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/lala_flying.png");
+	auto fire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/flame.png");
+	auto greenFire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/greenFlame.png");
+	auto wallpaper = std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/wall.png");
 
 	auto e = world.newEntity();
 	world.addComponent<renderTag>(e, {});

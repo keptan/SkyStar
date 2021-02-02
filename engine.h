@@ -2,7 +2,6 @@
 #include "star.h"
 #include <SDL2pp/Renderer.hh>
 
-using namespace SDL2pp;
 enum class InputMask
 {
 	None = 0x00,
