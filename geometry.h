@@ -19,10 +19,11 @@ struct pos
 class Point 
 {
 	public:
-	int x, y;
+	int x = 0;
+	int y = 0;
 
-	Point (int x = 0, int y = 0)
-		: x(y), y(y)
+	Point (int x, int y)
+		: x(x), y(y)
 	{}
 
 	Point (pos p)
@@ -132,7 +133,6 @@ class Rectangle
 
 	bool collides (const Circle circle) const 
 	{
-
 		int distX = std::abs(circle.center.x - corner.x - w / 2);
 		int distY = std::abs(circle.center.y - corner.y - h / 2);
 
