@@ -1,5 +1,6 @@
 #pragma once 
 #include "star.h"
+#include "geometry.h"
 #include <SDL2pp/Renderer.hh>
 #include <cmath>
 #include <math.h>
@@ -7,22 +8,12 @@
 #define PATH_MODE_LINEAR 0
 #define PATH_MODE_BEZIER 1
 
-using namespace SDL2pp;
 
 //in an ECS than components are just raw data
 //we can also put small helper functions in them as long as they're
 //"free"
 
-struct pos 
-{
-	float x = 0;
-	float y = 0;
 
-	int distance (const pos& p) const
-	{
-		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
-	}
-};
 
 struct velocity
 {
@@ -68,7 +59,7 @@ struct path
 struct sprite 
 {
 	using StorageStrategy = SparseArray<sprite>;
-	std::shared_ptr<Texture> sheet;
+	std::shared_ptr<SDL2pp::Texture> sheet;
 	int height = 32;
 	int width  = 32;
 	int frames = 0;
