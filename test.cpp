@@ -26,8 +26,6 @@ unsigned int time (const F f)
 	return duration.count();
 };
 
-
-
 auto main (void) -> int 
 {
 	SDL2pp::SDL sdl(SDL_INIT_VIDEO);
@@ -69,7 +67,6 @@ auto main (void) -> int
 
 	for(int x = 0; x < 640; x += 30)
 	{
-	
 		for(int y = 0; y < 480; y += 30)
 		{
 
@@ -111,7 +108,7 @@ auto main (void) -> int
 	const auto endFrame = SDL_GetTicks();
 	const auto frameCost = endFrame - tick;
 	averageFrameTime+= frameCost;
-	SDL_Delay(frameCost > 16 ? 16 : 16 - frameCost);
+	SDL_Delay(frameCost > 16 ? 0 : 16 - frameCost);
 	}
 	std::cout << averageFrameTime / state.frameCount << '\n';
 
