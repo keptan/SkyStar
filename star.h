@@ -157,7 +157,7 @@ using EMan = Packed<Signature, Entity, MAX_ENTITIES>;
 template<typename T, size_t Max_T = MAX_ENTITIES>
 class SparseArray 
 {
-	static constexpr size_t ChunkSize = 64;
+	static constexpr size_t ChunkSize = 64/sizeof(T);
 	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
 	static constexpr size_t Chunks = Max / ChunkSize;
 	std::array<std::bitset<ChunkSize>, Chunks> flags;
