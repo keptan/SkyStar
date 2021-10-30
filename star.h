@@ -21,7 +21,7 @@
 //in an ECS than each object in the game is just a number, that you can associate with different data
 //like lots of items will have a 'position' data, and only some will have a hitbox
 //the 'Components' of data can be added and removed from the entity at will
-//
+
 //the other part is the 'systems'
 //systems are functions that transform the data of valid entities
 //for example the render system can go through all the entities that have 'Position' and 'Sprite' components 
@@ -34,6 +34,8 @@
 //also its cool and its the in way to make videogames
 
 //the type for Entity and component is just a number, entity 1, entity 2.... etc
+
+//ok we've decided that actually entities need to carry state on child relations so we'll do that instead
 using Entity = std::uint32_t;
 using ComponentType = std::uint8_t;
 
@@ -53,7 +55,7 @@ class Packed
 {
 	std::array<T, Max> res;
 	std::queue<E> recycled;
-	E count;
+	E count;//why is count a template instead of a size_t?  who knows!
 
 public:
 
@@ -61,6 +63,13 @@ public:
 		: count(0)
 	{}
 
+	//we always try and fill a previously occupied spot in the array 
+	//such that the array always remains 'packed', instead of sparse
+	//all this does is return an empty spot on the array for us to use
+	//this system reads like it could be adapted to a variable amount of entities instead of static
+	//but this would incurr some overhead for allocates
+	//better than just dumpstering each time we go over the limit
+	//as well as overallocating as we do now?
 	E create (void)
 	{
 		if(recycled.size())
@@ -69,11 +78,14 @@ public:
 			recycled.pop();
 			return use;
 		}
+		//this means we created too many entities and our program explodes
+		//fixme(!) arch problem
 		assert(count < Max && "Packed array is full!");
 		E use = count++;
 		return use;
 	}
 
+	//log which spaces are free so that we can use them again, yay!
 	void destroy (const E id)
 	{
 		assert(id < Max && "destroying an out of bounds item");
@@ -81,6 +93,7 @@ public:
 		recycled.push(id);
 	}
 
+	//either set, or retieve a calue from our array 
 	T& touch (const E id, const std::optional<T> data = std::nullopt)
 	{
 		if(data == std::nullopt) return res[id];
@@ -88,16 +101,18 @@ public:
 		return res[id];
 	}
 
+	//returns how many spaces are currently in use in our array
 	size_t size (void)
 	{
 		return count;
 	}
 
+	//here we create an entire forward iterator for using this container
 	class Iterator 
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
-		using value_type		= T;
+		using value_type	= T;
 		using pointer           = T*;
 		using reference         = T&;
 
@@ -137,8 +152,6 @@ public:
 
 	Iterator begin() {return Iterator(*this, 0);}
 	Iterator end()	 {return Iterator(*this, count);}
-
-
 };
 
 //packed erray of entity signatures
@@ -157,9 +170,16 @@ using EMan = Packed<Signature, Entity, MAX_ENTITIES>;
 template<typename T, size_t Max_T = MAX_ENTITIES>
 class SparseArray 
 {
-	static constexpr size_t ChunkSize = 64/sizeof(T);
+	//assuming that a cacheline is 64 bytes we can process these one cacheline at a time??
+	//im just throwing stuff at the wall here, idk the effecacy of this at all
+	//actually we rely on u_long being 64 bit down below, so no!
+	static constexpr size_t ChunkSize = sizeof(unsigned long) * 8;
 	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
 	static constexpr size_t Chunks = Max / ChunkSize;
+	//we have an array of bitsets, each bit flag tells us if that position in the array is filled
+	//we have an array of optional arrays, each array either doesn't exist or contains some amount
+	//of components
+	//can we utilize inline storage here for things like sprites? who tf knows!
 	std::array<std::bitset<ChunkSize>, Chunks> flags;
 	std::array<std::optional<std::array<T, ChunkSize>>, Chunks> res;
 
@@ -168,6 +188,8 @@ class SparseArray
 		const size_t startChunk = start / ChunkSize;
 		size_t c = startChunk * ChunkSize;
 
+		//taking a position, here we skip through our metaarray
+		//until we approach a position where we can actually read data
 		for(int i = startChunk; i < Chunks; i++)
 		{
 			const auto& bitset = flags[i];
@@ -205,9 +227,13 @@ public:
 
 	T& insert (const size_t pos, const T in)
 	{
+		//find what chunk we're inserting into
+		//allocate that chunk if necessary (ruh roh!)
+	
 		const size_t chunk = pos / ChunkSize;
 		if(flags[chunk].none()) res[chunk] = std::array<T, ChunkSize>();
 
+		//make sure we set the bitflag to remind us this spot is filled 
 		flags[chunk].set(pos - ChunkSize * chunk);
 		res[chunk].value()[pos - ChunkSize * chunk] = in;
 		return res[chunk].value()[pos - ChunkSize * chunk];
@@ -225,7 +251,6 @@ public:
 	T& get (const size_t pos)
 	{
 		const size_t chunk = pos / ChunkSize;
-
 		return res[chunk].value()[pos - ChunkSize * chunk];
 	}
 
@@ -251,14 +276,14 @@ public:
 		Iterator operator++(int)
 		{
 			Iterator tmp = *this;
-			auto t = pos;
+			//can we optimize away the constant checks from next_valid() and only
+			//call it sometimes?
 			pos = res.next_valid(pos);
 			return tmp;
 		}
 
 		Iterator& operator++ (void)
 		{
-			auto t = pos;
 			pos = res.next_valid(pos);
 
 			return *this;
@@ -280,7 +305,7 @@ public:
 	Iterator end()	 {return Iterator(*this, Max);}
 };
 
-//the seq away is a more simpler case where its a component like POS where its small
+//the seq array is a more simpler case where its a component like position where its small
 //and lots of entities (nearly all) will contain it
 //so we can use this faster datastructure
 template <typename T, size_t Max_T = MAX_ENTITIES>
