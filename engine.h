@@ -10,6 +10,7 @@ enum class InputMask
 	Left = 1 << 3,
 	Right = 1 << 4,
 	Attack = 1 << 5,
+	Quit = 1 << 6,
 };
 
 inline InputMask operator | (InputMask lhs, InputMask rhs)
@@ -60,6 +61,7 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_a: state.input |= InputMask::Left; break;
 					case SDLK_s: state.input |= InputMask::Down; break;
 					case SDLK_d: state.input |= InputMask::Right; break;
+					case SDLK_q: state.input |= InputMask::Quit; break;
 				}
 
 		} 
@@ -71,6 +73,7 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_a: state.input ^= InputMask::Left; break;
 					case SDLK_s: state.input ^= InputMask::Down; break;
 					case SDLK_d: state.input ^= InputMask::Right; break;
+					case SDLK_q: state.input ^= InputMask::Quit; break;
 				}
 		}
 	}
