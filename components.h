@@ -10,10 +10,7 @@
 
 
 //in an ECS than components are just raw data
-//we can also put small helper functions in them as long as they're
-//"free"
-
-
+//but here we go putting functions into them
 
 struct velocity
 {
@@ -46,6 +43,19 @@ struct velocity
 		return out;
 	}
 
+	struct args
+	{
+		const int x = 0;
+		const int y = 0;
+	};
+
+	explicit velocity (const args a)
+		: dx(a.x), dy(a.y)
+	{}
+
+	velocity (const int x = 0, const int y = 0)
+		: dx(x), dy(y)
+	{}
 };
 
 struct path
@@ -62,7 +72,11 @@ struct sprite
 	std::shared_ptr<SDL2pp::Texture> sheet;
 	int height = 32;
 	int width  = 32;
-	int frames = 0;
+	int frames = 0; //this should be moved to a different component
+					//so that sprite is just soley a ptr to the sprite data 
+					//itself i guess
+					//are spritesheets fundemental or just an accesory feature?
+					//what are the costs?
 	int frame  = 0;
 };
 
