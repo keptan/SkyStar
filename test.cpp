@@ -12,9 +12,7 @@
 #include <type_traits>
 #include "components.h"
 #include "systems.h"
-
-
-
+#include "entities.h"
 
 template <typename F>
 unsigned int time (const F f)
@@ -28,7 +26,8 @@ unsigned int time (const F f)
 
 auto main (void) -> int 
 {
-	SDL2pp::SDL sdl(SDL_INIT_VIDEO);
+	SDL2pp::SDL sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
+	SDL2pp::SDLTTF sdl_ttf;
 
 
 	SDL2pp::Window window("demo", 
@@ -38,6 +37,7 @@ auto main (void) -> int
 			SDL_WINDOW_RESIZABLE);
 
 	SDL2pp::Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
+
 	WorldSystems world;
 	world.registerComponent<pos>();
 	world.registerComponent<renderTag>();
@@ -48,22 +48,13 @@ auto main (void) -> int
 	world.registerComponent<collision>();
 	world.registerComponent<path>();
 
-
 	auto lala	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/flame.png");
 	auto greenFire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/greenFlame.png");
 	auto wallpaper = std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/wall.png");
 
-	auto e = world.newEntity();
-	world.addComponent<renderTag>(e, {});
-	world.addComponent<animationTag>(e, {});
+	auto e = player(world);
 	world.addComponent<sprite>(e, {lala, 37, 21, 7, 0});
-	world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-	world.addComponent<velocity>(e, {0, 0});
-	world.addComponent<playerTag>(e, {});
-	world.addComponent<collision>(e, {100});
-	world.addComponent<path>(e, {0, 7000, 1, {{25, 100}, {400, 500}, {200, 200}, {10, 10}, {480, 480}, {10, 160}, {160, 10}}});
-
 
 	for(int x = 0; x < 640; x += 30)
 	{
@@ -82,23 +73,25 @@ auto main (void) -> int
 
 
 	GameState state;
-	SpaceGrid grid (world, 40, 640, 480);
+	SpaceGrid grid (world, 160, 640, 480);
 	state.time = SDL_GetTicks();
 
 	unsigned int averageFrameTime;
 
-	for(int i = 0; i < 600; i++)
+	for(int i = 0; i < 6000; i++)
 	{
 	const auto tick = SDL_GetTicks();
 	state.frameTime = tick - state.time;
 	state.time = tick;
 
+	if ((state.input & InputMask::Quit) == InputMask::Quit) break;
+
 	grid.regen(world);
 
 	sweeper(world, state);
 	playerMove(world, state);
-	moveSystem(world, state);
 	pathSystem(world, state);
+	moveSystem(world, state);
 	animationSystem(world, state);
 	collisionSphere(world, state, grid, greenFire, fire);
 	renderWall(world, state, rendr, wallpaper);
@@ -114,8 +107,3 @@ auto main (void) -> int
 
 
 }
-
-
-
-
-
