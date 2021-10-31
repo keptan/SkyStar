@@ -1,0 +1,8 @@
+[submodule "box2d"]
+	path = box2d
+	url = https://github.com/erincatto/box2d
+	ignore = dirty
+[submodule "SDL2pp"]
+	path = SDL2pp
+	url = https://github.com/libSDL2pp/libSDL2pp
+	ignore = dirty
