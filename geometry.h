@@ -9,6 +9,7 @@ struct pos
 {
 	float x = 0;
 	float y = 0;
+	float rot = 0;
 
 	int distance (const pos& p) const
 	{
