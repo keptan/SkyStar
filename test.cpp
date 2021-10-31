@@ -33,12 +33,23 @@ auto main (void) -> int
 	SDL2pp::Window window("demo", 
 			SDL_WINDOWPOS_UNDEFINED, 
 			SDL_WINDOWPOS_UNDEFINED,
-			640, 480,
+			1280, 960,
 			SDL_WINDOW_RESIZABLE);
 
 	SDL2pp::Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
 
 	WorldSystems world;
+
+	GameState state;
+	state.time = SDL_GetTicks();
+
+	b2Vec2 gravity (0.0f, 0.0f);
+	b2World space (gravity);
+
+	b2BodyDef ground;
+	ground.position.Set(0.0f, -10.0f);
+
+
 	world.registerComponent<pos>();
 	world.registerComponent<renderTag>();
 	world.registerComponent<animationTag>();
@@ -60,25 +71,14 @@ auto main (void) -> int
 	{
 		for(int y = 0; y < 480; y += 30)
 		{
-
-		e = world.newEntity();
-		world.addComponent<renderTag>(e, {});
-		world.addComponent<animationTag>(e, {});
-		world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
-		world.addComponent<pos>(e, {std::experimental::randint(0, 640), std::experimental::randint(0, 480)});
-		world.addComponent<velocity>(e, {std::experimental::randint(-15, 15), std::experimental::randint(50, 140)});
-		world.addComponent<collision>(e, {100});
+			e = fireball(world, space);
+			world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		}
 	}
 
-
-	GameState state;
-	SpaceGrid grid (world, 160, 640, 480);
-	state.time = SDL_GetTicks();
-
 	unsigned int averageFrameTime;
 
-	for(int i = 0; i < 6000; i++)
+	for(int i = 0;; i++)
 	{
 	const auto tick = SDL_GetTicks();
 	state.frameTime = tick - state.time;
@@ -86,24 +86,22 @@ auto main (void) -> int
 
 	if ((state.input & InputMask::Quit) == InputMask::Quit) break;
 
-	grid.regen(world);
-
 	sweeper(world, state);
 	playerMove(world, state);
 	pathSystem(world, state);
 	moveSystem(world, state);
 	animationSystem(world, state);
-	collisionSphere(world, state, grid, greenFire, fire);
 	renderWall(world, state, rendr, wallpaper);
 	renderSystem(world, state, rendr);
+
+	space.Step(1.0f / 60.0f, 6, 2);
+	boxSystem(world, state);
 
 	state.frameCount++;
 	const auto endFrame = SDL_GetTicks();
 	const auto frameCost = endFrame - tick;
 	averageFrameTime+= frameCost;
-	SDL_Delay(frameCost > 16 ? 0 : 16 - frameCost);
+	SDL_Delay(frameCost >= 16 ? 0 : 16 - frameCost);
 	}
 	std::cout << averageFrameTime / state.frameCount << '\n';
-
-
 }
