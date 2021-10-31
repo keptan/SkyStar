@@ -4,6 +4,10 @@
 #include <SDL2pp/Renderer.hh>
 #include <cmath>
 #include <math.h>
+#include "box2d.h"
+#include "b2_math.h"
+#include "b2_world.h"
+#include "b2_body.h"
 
 #define PATH_MODE_LINEAR 0
 #define PATH_MODE_BEZIER 1
@@ -14,8 +18,8 @@
 
 struct velocity
 {
-	int dx = 0;
-	int dy = 0;
+	float dx = 0;
+	float dy = 0;
 
 	double magnitude (void)
 	{
@@ -82,7 +86,8 @@ struct sprite
 
 struct collision
 {
-	int radius = 1;
+	b2Body* body;
+	std::queue<Entity> hits;
 };
 
 //tag components too
