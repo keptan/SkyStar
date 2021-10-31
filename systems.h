@@ -7,6 +7,13 @@
 #include <SDL2pp/Renderer.hh>
 #include <vector>
 #include <random>
+#include <algorithm>
+#include <span>
+#include "box2d.h"
+#include "b2_math.h"
+#include "b2_world.h"
+#include "b2_body.h"
+
 //systems are functions that operate on a subset of entities 
 
 void moveSystem (WorldSystems& world, GameState& state)
@@ -38,11 +45,11 @@ void moveSystem (WorldSystems& world, GameState& state)
 void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr, std::shared_ptr<SDL2pp::Texture> t)
 {
 	const int offset = state.frameCount % 64;
-	for(int x = -64; x < 640; x += 64)
+	for(int x = (-64 * 2); x < 640 * 2; x += 64 * 2)
 	{
-		for(int y = -64; y < 480; y+= 64)
+		for(int y =( -64 * 2); y < 480 * 2; y+= 64 * 2)
 		{
-			rendr.Copy(*t, SDL2pp::Rect(0, 0, 64, 64), SDL2pp::Rect(x, y + offset, 64, 64));
+			rendr.Copy(*t, SDL2pp::Rect(0, 0, 64, 64), SDL2pp::Rect(x, y + offset * 2, 64 * 2, 64 * 2));
 		}
 	}
 }
@@ -105,8 +112,13 @@ void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rend
 		auto& space = world.getComponents<pos>()->get(i);
 		auto& texture = world.getComponents<sprite>()->get(i);
 
-		rendr.Copy(*texture.sheet, SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), SDL2pp::Rect(space.x, space.y, texture.width, texture.height));
-	
+		rendr.Copy
+		(
+			*texture.sheet, 
+			SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), 
+			SDL2pp::Rect(space.x * 2, space.y * 2, texture.width * 2, texture.height * 2),
+			space.rot	
+		);
 	}
 	rendr.Present();
 }
@@ -127,110 +139,28 @@ void animationSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-struct SpaceGrid 
+void boxSystem (WorldSystems& world, GameState& state)
 {
-	std::vector< std::vector<Entity>> res;
-	const int fidelity;
-	const int width; 
-	const int height;
-
-	SpaceGrid (WorldSystems& world, const int fidelity, const int width, const int height) 
-		: fidelity(fidelity), width(width), height(height)
-	{
-		
-		assert((width % fidelity == 0 && height % fidelity == 0) && "Fidelity must be a common divisor of width and height");
-		const int boxes = (width * height) / (fidelity * fidelity);
-		res.reserve(boxes);
-		for(int i = 0; i < boxes; i++) res.push_back({});
-	}
-
-	bool collides (const int place, const collision& bound, const pos& space) const
-	{
-		int px = (place * fidelity) % width;
-		int py = ((place * fidelity) / width) * fidelity;
-
-		Rectangle rect (Point(px, py), fidelity, fidelity);
-		Circle circle (space, bound.radius);
-		return rect.collides(circle);
-	}
-
-		
-
-	void insert (const int ent, const collision& c, const pos& space)
-	{
-		const int boxes = (width * height) / (fidelity * fidelity);
-		for(int i = 0; i < boxes; i++)
-		{
-			if(collides(i, c, space))
-				res.at(i).push_back(ent);
-		}
-	}
-
-	void regen (WorldSystems& world) 
-	{
-		auto sig  = world.createSignature<pos, collision>();
-		auto ents = world.signatureScan(sig);
-
-		for(auto& v : res)
-		{
-			v.clear();
-		}
-
-		
-		for(const auto i : ents)
-		{
-			const auto& space = world.getComponents<pos>()->get(i);	
-			const auto& bound = world.getComponents<collision>()->get(i);	
-
-			insert(i, bound, space);
-		}
-	}
-
-	const std::vector<Entity> adjacent (const collision& c, const pos& space) const
-	{
-		std::vector<Entity> acc;
-		const int boxes = (width * height) / (fidelity * fidelity);
-		for(int i = 0; i < boxes; i++)
-		{
-			if(collides(i, c, space))
-				acc.insert(acc.end(), res.at(i).begin(), res.at(i).end());
-		}
-		return acc;
-	}
-};
-
-void collisionSphere (WorldSystems& world, GameState& state, SpaceGrid& space, std::shared_ptr<SDL2pp::Texture> t, std::shared_ptr<SDL2pp::Texture> normal)
-{
-
-	auto sig = world.createSignature<sprite, pos, collision>();
+	auto sig = world.createSignature<pos, collision>();
 	auto ents = world.signatureScan(sig);
 
-
-	auto player = world.signatureScan( world.createSignature<playerTag, pos, collision>());
-	for(const auto p : player)
+	for(const auto i : ents)
 	{
-		for(const auto e : ents)
-		{
-			if(e == p) continue;
-			auto& s = world.getComponents<sprite>()->get(e);
-			s.sheet = normal;
-		}
+		auto& space = world.getComponents<pos>()->get(i);
+		auto& box	= world.getComponents<collision>()->get(i);
 
-		const auto position = world.getComponents<pos>()->get(p);
-		if(position.x < 0 || position.y < 0 ) continue;
-		if(position.x > 640 || position.y > 480 ) continue;
-		const auto col = world.getComponents<collision>()->get(p);
+		auto p = box.body->GetPosition();
+		auto a = box.body->GetAngle();
 
-		for(const auto e : space.adjacent(col, position))
-		{
-			if(e == p) continue;
+		space.x = p.x / 0.04;
+		space.y = p.y / 0.04;
+		space.rot = a;
 
-			auto& s = world.getComponents<sprite>()->get(e);
-			const auto pCol = world.getComponents<collision>()->get(e);
-			const auto pPos = world.getComponents<pos>()->get(e);
-
-			if(pPos.distance(position) < 100) s.sheet = t;	
-		
-		}
+		if(space.y > 480) box.body->SetTransform(b2Vec2(p.x, -16.0f * 0.04f), a);
+		if(space.x > 640) box.body->SetTransform(b2Vec2(-8.0f * 0.04f,p.y), a);
+		if(space.x < -8) box.body->SetTransform(b2Vec2(648.0f * 0.04f,p.y), a);
 	}
 }
+
+
+
