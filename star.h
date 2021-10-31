@@ -555,9 +555,9 @@ class WorldSystems
 		signature.set(components.getId<T>(), false);
 	}
 
-	std::vector<size_t> signatureScan (const Signature s)
+	std::vector<Entity> signatureScan (const Signature s)
 	{
-		std::vector<size_t> acc;
+		std::vector<Entity> acc;
 		for(size_t i = 0; i < entities.size(); i++)
 		{
 			if((entities.touch(i) & s) == s)	acc.push_back(i);
