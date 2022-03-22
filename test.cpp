@@ -23,9 +23,16 @@ unsigned int time (const F f)
 	auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
 	return duration.count();
 };
-
+int pidIntSource()
+{
+  return 1;
+}
+void pidIntOutput(int output)
+{
+}
 auto main (void) -> int 
 {
+	PIDController pid(1, 10, 0, pidIntSource, pidIntOutput);
 	SDL2pp::SDL sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	SDL2pp::SDLTTF sdl_ttf;
 
@@ -58,23 +65,31 @@ auto main (void) -> int
 	world.registerComponent<playerTag>();
 	world.registerComponent<collision>();
 	world.registerComponent<path>();
+	world.registerComponent<missile>();
+	world.registerComponent<sdlRect>();
 
 	auto lala	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/flame.png");
 	auto greenFire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/greenFlame.png");
 	auto wallpaper = std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/wall.png");
 
-	auto e = player(world);
-	world.addComponent<sprite>(e, {lala, 37, 21, 7, 0});
+	const auto target  = player(world, space);
+	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
 
+	/*
 	for(int x = 0; x < 640; x += 30)
 	{
 		for(int y = 0; y < 480; y += 30)
 		{
-			e = fireball(world, space);
+			auto e = fireball(world, space, target);
 			world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		}
 	}
+	*/
+
+	auto e = fireball(world, space, target);
+	world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
+		
 
 	unsigned int averageFrameTime;
 
@@ -89,13 +104,12 @@ auto main (void) -> int
 	sweeper(world, state);
 	playerMove(world, state);
 	pathSystem(world, state);
-	moveSystem(world, state);
 	animationSystem(world, state);
-	renderWall(world, state, rendr, wallpaper);
-	renderSystem(world, state, rendr);
-
 	space.Step(1.0f / 60.0f, 6, 2);
 	boxSystem(world, state);
+	//naiveMissileControl(world, state);
+	renderWall(world, state, rendr, wallpaper);
+	renderSystem(world, state, rendr);
 
 	state.frameCount++;
 	const auto endFrame = SDL_GetTicks();
