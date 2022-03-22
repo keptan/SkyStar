@@ -8,6 +8,7 @@
 #include "b2_math.h"
 #include "b2_world.h"
 #include "b2_body.h"
+#include "PID.h"
 
 #define PATH_MODE_LINEAR 0
 #define PATH_MODE_BEZIER 1
@@ -98,4 +99,27 @@ struct animationTag
 {};
 
 struct playerTag
-{};
+{
+	b2Body* body;
+	std::queue<Entity> hits;
+};
+
+struct sdlRect
+{
+	Rectangle r;
+};
+
+struct missile
+{
+	Entity target;
+	float start, end, startTime;
+
+	PIDController<float> controller;
+
+	missile (Entity t = 0)
+		: start(0), end(0), startTime(0), controller(0.4, 0.002, 0.001, 0, 0)
+	{
+		controller.setTarget(0);
+	}
+};
+
