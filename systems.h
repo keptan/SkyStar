@@ -42,6 +42,7 @@ void playerMove (WorldSystems& world, GameState& state)
 		if((state.input & InputMask::Down) == InputMask::Down) dir = dir + velocity{0, 50};	
 
 		dir = dir.normalize(150);
+		if((state.input & InputMask::LShift) == InputMask::LShift) dir = dir.normalize(300);
 
 		auto& space = world.getComponents<pos>()->get(i);
 		auto& box	= world.getComponents<playerTag>()->get(i);
@@ -103,7 +104,7 @@ void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rend
 			*texture.sheet, 
 			SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), 
 			SDL2pp::Rect(space.x * 2, space.y * 2, texture.width * 2, texture.height * 2),
-			space.rot	
+			space.rot * 180 / M_PI	
 		);
 	}
 	rendr.Present();
@@ -150,5 +151,61 @@ void boxSystem (WorldSystems& world, GameState& state)
 
 }
 
+void naiveMissileControl (WorldSystems& world, GameState& state)
+{
+	auto sig = world.createSignature<missile, collision>();
+	auto ents = world.signatureScan(sig);
+
+	for(const auto i : ents)
+	{
+		auto& box = world.getComponents<collision>()->get(i);
+		auto& rocket = world.getComponents<missile>()->get(i);
+		auto& target	= world.getComponents<playerTag>()->get(rocket.target);
+
+		auto posA  = box.body->GetPosition();
+		auto posB  = target.body->GetPosition();
+
+		const int sign = box.body->GetAngle() > 0 ? 1 : -1;
+		auto propAngle	= sign * fmod(abs(box.body->GetAngle() *  180 /M_PI), 360);
+		auto spaceAngle	= atan2(posA.x - posB.x, posA.y - posB.y) * 180 / M_PI;
+		if(spaceAngle <0) spaceAngle = 360 - abs(spaceAngle) ;
+
+		auto error = [&]()
+		{
+			auto angleDiff = propAngle - spaceAngle;
+			const int sign = angleDiff > 0 ? 1 : -1;
+
+			std::cout << angleDiff << ' ' << propAngle << ' ' << spaceAngle << std::endl;
+
+			//if(angleDiff > 180) return angleDiff - 360;
+			//if(angleDiff < -180) return angleDiff + 360;
+
+			return angleDiff;
+		}();
+
+		auto correction = [&]()
+		{
+			const int sign = error > 0 ? 1 : -1;
+			const auto mag = abs(error);
+			if(mag > 5) return sign * 3.5;
+			return sign * ((mag / 5) * (mag/ 5));
+		}();
+
+		//std::cout << propAngle << ' ' << spaceAngle << ' ' << error << ' ' << correction << std::endl;
+
+		rocket.controller.setTarget(correction);
+		auto adjust		= rocket.controller.tick(box.body->GetAngularVelocity(), state.time);
+		box.body->ApplyTorque(adjust, true);
+		auto unadjusted	= box.body->GetAngle() - 1.5708;
+
+
+
+		auto x = cos(unadjusted);
+		auto y = sin(unadjusted);
+		b2Vec2 vec = b2Vec2(x, y);
+		vec *= 0.33;
+		//box.body->ApplyForceToCenter(vec, true);
+	}
+}
 
 
