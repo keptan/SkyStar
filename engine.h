@@ -11,6 +11,7 @@ enum class InputMask
 	Right = 1 << 4,
 	Attack = 1 << 5,
 	Quit = 1 << 6,
+	LShift = 1 << 7,
 };
 
 inline InputMask operator | (InputMask lhs, InputMask rhs)
@@ -44,7 +45,7 @@ struct GameState
 	InputMask input = InputMask::None;
 
 	unsigned int frameCount = 0;
-	unsigned int time = 0;
+	unsigned long int time = 0;
 	unsigned int frameTime = 0;
 };
 
@@ -62,6 +63,7 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_s: state.input |= InputMask::Down; break;
 					case SDLK_d: state.input |= InputMask::Right; break;
 					case SDLK_q: state.input |= InputMask::Quit; break;
+					case SDLK_LSHIFT: state.input |= InputMask::LShift; break;
 				}
 
 		} 
@@ -74,6 +76,7 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_s: state.input ^= InputMask::Down; break;
 					case SDLK_d: state.input ^= InputMask::Right; break;
 					case SDLK_q: state.input ^= InputMask::Quit; break;
+					case SDLK_LSHIFT: state.input ^= InputMask::LShift; break;
 				}
 		}
 	}
