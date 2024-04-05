@@ -4,11 +4,6 @@
 #include <SDL2pp/Renderer.hh>
 #include <cmath>
 #include <math.h>
-#include "box2d.h"
-#include "b2_math.h"
-#include "b2_world.h"
-#include "b2_body.h"
-#include "PID.h"
 
 #define PATH_MODE_LINEAR 0
 #define PATH_MODE_BEZIER 1
@@ -19,8 +14,8 @@
 
 struct velocity
 {
-	float dx = 0;
-	float dy = 0;
+	double dx = 0;
+	double dy = 0;
 
 	double magnitude (void)
 	{
@@ -50,15 +45,15 @@ struct velocity
 
 	struct args
 	{
-		const int x = 0;
-		const int y = 0;
+		const double x = 0.0;
+		const double y = 0.0;
 	};
 
 	explicit velocity (const args a)
 		: dx(a.x), dy(a.y)
 	{}
 
-	velocity (const int x = 0, const int y = 0)
+	velocity (const double x = 0.0, const double y = 0.0)
 		: dx(x), dy(y)
 	{}
 };
@@ -85,12 +80,6 @@ struct sprite
 	int frame  = 0;
 };
 
-struct collision
-{
-	b2Body* body;
-	std::queue<Entity> hits;
-};
-
 //tag components too
 struct renderTag
 {};
@@ -99,27 +88,21 @@ struct animationTag
 {};
 
 struct playerTag
-{
-	b2Body* body;
-	std::queue<Entity> hits;
-};
+{};
 
 struct sdlRect
 {
 	Rectangle r;
 };
 
-struct missile
+struct periodicCallback
 {
-	Entity target;
-	float start, end, startTime;
+	void (*f_p)();
+	int frameCount;
 
-	PIDController<float> controller;
-
-	missile (Entity t = 0)
-		: start(0), end(0), startTime(0), controller(0.4, 0.002, 0.001, 0, 0)
-	{
-		controller.setTarget(0);
-	}
+	periodicCallback (auto f, int fc = 0)
+		: f_p(f), frameCount(fc)
+	{}
+	
 };
 
