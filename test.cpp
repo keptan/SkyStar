@@ -1,4 +1,3 @@
-#include <SDL2pp/Renderer.hh>
 #include <iostream>
 #include <vector>
 #include <unordered_set>
@@ -40,7 +39,7 @@ auto main (void) -> int
 	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
 
 
-	auto e = fireball(world);
+	auto e = fireball(world, state);
 	world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		
 
@@ -57,7 +56,7 @@ auto main (void) -> int
 		{
 			for(int i = 0; i < 25; i++)
 			{
-				auto e = fireball(world);
+				auto e = fireball(world, state);
 				world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 				std::cout << world.eCount() << std::endl;
 			}
