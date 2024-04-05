@@ -1,6 +1,7 @@
 #pragma once
 #include "star.h"
 #include <SDL2pp/Renderer.hh>
+#include <SDL2pp/SDL2pp.hh>
 
 enum class InputMask
 {
@@ -84,5 +85,21 @@ void sweeper (WorldSystems& world, GameState& state)
 		}
 	}
 }
+
+struct GameWindow
+{
+	SDL2pp::SDL   	sdl;
+	SDL2pp::SDLTTF 	sdl_ttf;
+	SDL2pp::Window	window;
+	SDL2pp::Renderer rendr;
+
+	GameWindow (void)
+		: sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO),
+		  window("Demo..", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+			 1280, 960,
+			 SDL_WINDOW_RESIZABLE),
+		  rendr(window, -1, SDL_RENDERER_ACCELERATED)
+		{}
+};
 
 

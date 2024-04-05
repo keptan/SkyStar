@@ -6,7 +6,6 @@
 #include <experimental/random>
 #include <map>
 
-#include <SDL2pp/SDL2pp.hh>
 #include <random>
 #include <chrono>
 #include <type_traits>
@@ -26,19 +25,9 @@ unsigned int time (const F f)
 
 auto main (void) -> int 
 {
-	SDL2pp::SDL sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
-	SDL2pp::SDLTTF sdl_ttf;
 
-
-	SDL2pp::Window window("demo", 
-			SDL_WINDOWPOS_UNDEFINED, 
-			SDL_WINDOWPOS_UNDEFINED,
-			1280, 960,
-			SDL_WINDOW_RESIZABLE);
-
-	SDL2pp::Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
 	WorldSystems world;
-
+	GameWindow window;
 	GameState state;
 	state.time = SDL_GetTicks();
 
@@ -49,11 +38,12 @@ auto main (void) -> int
 	world.registerComponent<velocity>();
 	world.registerComponent<playerTag>();
 	world.registerComponent<path>();
+	world.registerComponent<outOfBoundsTag>();
 
-	auto lala	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/lala_flying.png");
-	auto fire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/flame.png");
-	auto greenFire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/greenFlame.png");
-	auto wallpaper = std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/wall.png");
+	auto lala	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/lala_flying.png");
+	auto fire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/flame.png");
+	auto greenFire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/greenFlame.png");
+	auto wallpaper = std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/wall.png");
 
 	const auto target  = player(world);
 	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
@@ -86,9 +76,10 @@ auto main (void) -> int
 		playerMove(world, state);
 		pathSystem(world, state);
 		animationSystem(world, state);
-		renderWall(world, state, rendr, wallpaper);
-		renderSystem(world, state, rendr);
+		renderWall(world, state, window.rendr, wallpaper);
+		renderSystem(world, state, window.rendr);
 		velocitySystem(world, state);
+		outOfBounds(world, state);
 
 		state.frameCount++;
 		const auto endFrame = SDL_GetTicks();
