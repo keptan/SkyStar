@@ -1,6 +1,7 @@
 #pragma once 
 #include "star.h"
 #include "geometry.h"
+#include "engine.h"
 #include <SDL2pp/Renderer.hh>
 #include <cmath>
 #include <math.h>
@@ -60,8 +61,8 @@ struct velocity
 
 struct path
 {
-	int start_time = 0;
-	int finish_time = 30000;
+	long int start_time = 0;
+	long int finish_time = 30000;
 	int mode = PATH_MODE_LINEAR; 
 	std::vector<pos> nodes = {};
 
@@ -101,11 +102,16 @@ struct sdlRect
 
 struct pCallback
 {
-	void (*f_p)();
-	int frameCount;
+	void (*f_p)(Entity e, WorldSystems& world, GameState& state);
+	long int period;
+	long int time;
 
-	periodicCallback (auto f, int fc = 0)
-		: f_p(f), frameCount(fc)
+	pCallback (void)
+		: f_p(nullptr), period(0), time(0)
+	{}
+
+	pCallback (auto f, long int p = 0, long int t = 0)
+		: f_p(f), period(p), time(t + period)
 	{}
 	
 };
