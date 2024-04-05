@@ -23,16 +23,12 @@ unsigned int time (const F f)
 	auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
 	return duration.count();
 };
-int pidIntSource()
-{
-  return 1;
-}
+
 void pidIntOutput(int output)
 {
 }
 auto main (void) -> int 
 {
-	PIDController pid(1, 10, 0, pidIntSource, pidIntOutput);
 	SDL2pp::SDL sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
 	SDL2pp::SDLTTF sdl_ttf;
 
@@ -44,18 +40,10 @@ auto main (void) -> int
 			SDL_WINDOW_RESIZABLE);
 
 	SDL2pp::Renderer rendr (window, -1, SDL_RENDERER_ACCELERATED);
-
 	WorldSystems world;
 
 	GameState state;
 	state.time = SDL_GetTicks();
-
-	b2Vec2 gravity (0.0f, 0.0f);
-	b2World space (gravity);
-
-	b2BodyDef ground;
-	ground.position.Set(0.0f, -10.0f);
-
 
 	world.registerComponent<pos>();
 	world.registerComponent<renderTag>();
@@ -63,31 +51,18 @@ auto main (void) -> int
 	world.registerComponent<sprite>();
 	world.registerComponent<velocity>();
 	world.registerComponent<playerTag>();
-	world.registerComponent<collision>();
 	world.registerComponent<path>();
-	world.registerComponent<missile>();
-	world.registerComponent<sdlRect>();
 
 	auto lala	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/flame.png");
 	auto greenFire	= std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/greenFlame.png");
 	auto wallpaper = std::make_shared<SDL2pp::Texture>(rendr, DATA_PATH "/wall.png");
 
-	const auto target  = player(world, space);
+	const auto target  = player(world);
 	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
 
-	/*
-	for(int x = 0; x < 640; x += 30)
-	{
-		for(int y = 0; y < 480; y += 30)
-		{
-			auto e = fireball(world, space, target);
-			world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
-		}
-	}
-	*/
 
-	auto e = fireball(world, space, target);
+	auto e = fireball(world);
 	world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		
 
@@ -95,27 +70,34 @@ auto main (void) -> int
 
 	for(int i = 0;; i++)
 	{
-	const auto tick = SDL_GetTicks();
-	state.frameTime = tick - state.time;
-	state.time = tick;
+		const auto tick = SDL_GetTicks();
+		state.frameTime = tick - state.time;
+		state.time = tick;
 
-	if ((state.input & InputMask::Quit) == InputMask::Quit) break;
+		if ((state.input & InputMask::Quit) == InputMask::Quit) break;
+		if ((state.input & InputMask::PKey) == InputMask::PKey)
+		{
+			for(int i = 0; i < 25; i++)
+			{
+				auto e = fireball(world);
+				world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
+				std::cout << world.eCount() << std::endl;
+			}
+		}
 
-	sweeper(world, state);
-	playerMove(world, state);
-	pathSystem(world, state);
-	animationSystem(world, state);
-	space.Step(1.0f / 60.0f, 6, 2);
-	boxSystem(world, state);
-	//naiveMissileControl(world, state);
-	renderWall(world, state, rendr, wallpaper);
-	renderSystem(world, state, rendr);
+		sweeper(world, state);
+		playerMove(world, state);
+		pathSystem(world, state);
+		animationSystem(world, state);
+		renderWall(world, state, rendr, wallpaper);
+		renderSystem(world, state, rendr);
+		velocitySystem(world, state);
 
-	state.frameCount++;
-	const auto endFrame = SDL_GetTicks();
-	const auto frameCost = endFrame - tick;
-	averageFrameTime+= frameCost;
-	SDL_Delay(frameCost >= 16 ? 0 : 16 - frameCost);
+		state.frameCount++;
+		const auto endFrame = SDL_GetTicks();
+		const auto frameCost = endFrame - tick;
+		averageFrameTime+= frameCost;
+		SDL_Delay(frameCost >= 16 ? 0 : 16 - frameCost);
 	}
 	std::cout << averageFrameTime / state.frameCount << '\n';
 }

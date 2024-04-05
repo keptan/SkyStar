@@ -587,6 +587,11 @@ class WorldSystems
 		return components.getId<T>();
 	}
 
+	int eCount (void)
+	{
+		return entities.size();
+	}
+
 };
 		
 	
