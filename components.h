@@ -64,6 +64,7 @@ struct path
 	int finish_time = 30000;
 	int mode = PATH_MODE_LINEAR; 
 	std::vector<pos> nodes = {};
+
 };
 	
 struct sprite 
@@ -98,7 +99,7 @@ struct sdlRect
 	Rectangle r;
 };
 
-struct periodicCallback
+struct pCallback
 {
 	void (*f_p)();
 	int frameCount;
