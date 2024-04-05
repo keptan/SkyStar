@@ -40,8 +40,8 @@ pos bezierPath( int ms_passed, int length, vector<pos> nodes )
 }
 
 vector<pos> generateRandomNodes( int num_of_nodes = 3,
-			       int min_x = 0, int max_x = 80,
-			       int min_y = 0, int max_y = 80 ) 
+			       int min_x = 0, int max_x = 640,
+			       int min_y = 0, int max_y = 480 ) 
 {
 	vector<pos> nodes;
 	pos p;
