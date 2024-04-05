@@ -31,15 +31,6 @@ auto main (void) -> int
 	GameState state;
 	state.time = SDL_GetTicks();
 
-	world.registerComponent<pos>();
-	world.registerComponent<renderTag>();
-	world.registerComponent<animationTag>();
-	world.registerComponent<sprite>();
-	world.registerComponent<velocity>();
-	world.registerComponent<playerTag>();
-	world.registerComponent<path>();
-	world.registerComponent<outOfBoundsTag>();
-
 	auto lala	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/flame.png");
 	auto greenFire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/greenFlame.png");

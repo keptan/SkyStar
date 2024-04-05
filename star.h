@@ -461,23 +461,24 @@ public:
 	{}
 
 	template <typename T>
-	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
-	{
-		const char* typeName = typeid(T).name();
-		assert(components.find(typeName) != components.end() && "Component not registered before use.");
-
-		return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeName]);
-	}
-
-	template <typename T>
 	ComponentType registerComponent (void)
 	{
 		const char* typeName = typeid(T).name();
 		components.insert({typeName, ccounter});
-
 		componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
 
 		return ccounter++;
+	}
+
+
+	template <typename T>
+	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
+	{
+		const char* typeName = typeid(T).name();
+		//assert(components.find(typeName) != components.end() && "Component not registered before use.");
+		if(components.find(typeName) == components.end()) registerComponent<T>();
+
+		return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeName]);
 	}
 
 	template <typename T>
