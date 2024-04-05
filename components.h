@@ -90,6 +90,9 @@ struct animationTag
 struct playerTag
 {};
 
+struct outOfBoundsTag
+{};
+
 struct sdlRect
 {
 	Rectangle r;

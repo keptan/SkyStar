@@ -22,8 +22,8 @@ Entity fireball (WorldSystems& world)
 
 	world.addComponent<renderTag>(e, {});
 	world.addComponent<animationTag>(e, {});
+	world.addComponent<outOfBoundsTag>(e, {});
 	world.addComponent<pos>(e, {std::experimental::randint(0, 640), -10});
-
 	world.addComponent<velocity>(e, {0, std::experimental::randint(90, 150)});
 
 	return e;

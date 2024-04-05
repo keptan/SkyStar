@@ -122,3 +122,16 @@ void velocitySystem (WorldSystems& world, GameState& state)
 	}
 }
 
+void outOfBounds (WorldSystems& world, GameState& state)
+{
+	auto sig  = world.createSignature<outOfBoundsTag, pos>();
+	auto ents = world.signatureScan(sig);
+
+	for(const auto i: ents)
+	{
+		auto& p = world.getComponents<pos>()->get(i);
+		if(p.y >= 500 || p.y <= -60 || p.x <= -20 || p.x >= 700) 
+		world.killEntity(i);
+	}
+}
+
