@@ -20,13 +20,20 @@ Entity fireball (WorldSystems& world, GameState& state)
 {
 	Entity e = world.newEntity();
 
+	auto callback = [](Entity e, WorldSystems& w, GameState& s)
+	{
+		w.killEntity(e);
+	};
+
 	world.addComponent<renderTag>(e, {});
 	world.addComponent<animationTag>(e, {});
 	world.addComponent<outOfBoundsTag>(e, {});
 	world.addComponent<pos>(e, {std::experimental::randint(0, 640), -10});
 //	world.addComponent<velocity>(e, {0, std::experimental::randint(90, 150)});
 	world.addComponent<path>(e, {.start_time = state.time, .finish_time = state.time + 5000, .nodes = generateRandomNodes()});
+	world.addComponent<pCallback>(e, pCallback(callback, 5000, state.time));
 
 	return e;
-}
+};
+
 

@@ -4,11 +4,9 @@
 #include "star.h"
 #include "paths.h"
 #include "geometry.h"
-#include <SDL2pp/Renderer.hh>
 #include <vector>
 #include <random>
 #include <algorithm>
-#include <span>
 
 //systems are functions that operate on a subset of entities 
 
@@ -49,6 +47,7 @@ void playerMove (WorldSystems& world, GameState& state)
 void pathSystem (WorldSystems& world, GameState& state)
 {
 	auto sig = world.createSignature<path>();
+
 	auto ents = world.signatureScan(sig);
 	auto space = world.getComponents<pos>();
 	auto paths = world.getComponents<path>();
@@ -132,6 +131,23 @@ void outOfBounds (WorldSystems& world, GameState& state)
 		auto& p = world.getComponents<pos>()->get(i);
 		if(p.y >= 500 || p.y <= -60 || p.x <= -20 || p.x >= 700) 
 		world.killEntity(i);
+	}
+}
+
+void pCallbackSystem (WorldSystems& world, GameState& state)
+{
+	auto sig  = world.createSignature<pCallback>();
+	auto ents = world.signatureScan(sig);
+
+	for(const auto i : ents)
+	{
+		auto& p = world.getComponents<pCallback>()->get(i);
+		if(state.time >= p.time) 
+		{
+			p.time = state.time + p.period;
+			p.f_p(i, world, state); 
+
+		}
 	}
 }
 

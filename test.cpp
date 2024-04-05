@@ -70,6 +70,7 @@ auto main (void) -> int
 		renderSystem(world, state, window.rendr);
 		velocitySystem(world, state);
 		outOfBounds(world, state);
+		pCallbackSystem(world, state);
 
 		state.frameCount++;
 		const auto endFrame = SDL_GetTicks();
