@@ -457,13 +457,14 @@ class ComponentMan
 public: 
 
 	ComponentMan (void)
-		: ccounter(0)
+		: ccounter(1)
 	{}
 
 	template <typename T>
 	ComponentType registerComponent (void)
 	{
 		const char* typeName = typeid(T).name();
+		std::cerr << "registering: " << typeName << std::endl;
 		components.insert({typeName, ccounter});
 		componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
 
@@ -485,6 +486,12 @@ public:
 	ComponentType getId (void)
 	{
 		const char* typeName = typeid(T).name();
+
+		if(components.find(typeName) == components.end())
+		{
+			std::cerr << typeName << " type not registered returning blank signature" << std::endl;
+			return 0;
+		}
 
 		return components[typeName];
 	}
@@ -559,6 +566,11 @@ class WorldSystems
 	std::vector<Entity> signatureScan (const Signature s)
 	{
 		std::vector<Entity> acc;
+		if(s == 0) 
+		{
+			std::cerr << "blank signature!! returning empty array or something" << std::endl;
+			return acc;
+		}
 		for(size_t i = 0; i < entities.size(); i++)
 		{
 			if((entities.touch(i) & s) == s)	acc.push_back(i);
@@ -570,11 +582,10 @@ class WorldSystems
 	template<typename... Args>
 	Signature createSignature (void)
 	{
-		Signature out;
+		Signature out = 0;
 		(out.set(getComponentId<Args>()), ... );
 		return out;
 	}
-
 
 	template <typename T>
 	auto getComponents (void)
@@ -592,7 +603,6 @@ class WorldSystems
 	{
 		return entities.size();
 	}
-
 };
 		
 	
