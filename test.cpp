@@ -24,9 +24,6 @@ unsigned int time (const F f)
 	return duration.count();
 };
 
-void pidIntOutput(int output)
-{
-}
 auto main (void) -> int 
 {
 	SDL2pp::SDL sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO);
