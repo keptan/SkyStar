@@ -1,5 +1,6 @@
 #pragma once 
 #include <math.h>
+#include <assert.h>
 #define _USE_MATH_DEFINES
 
 
@@ -15,6 +16,7 @@ struct pos
 	{
 		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
 	}
+
 };
 
 class Point 
@@ -35,6 +37,19 @@ class Point
 	{
 		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
 	}
+
+	bool operator== (const Point& a) const
+	{
+		if(a.x != x) return false;
+		if(a.y != y) return false;
+		return true;
+	}
+
+	bool operator!= (const Point& a) const
+	{
+		return !(*this == a);
+	}
+
 };
 
 class Velocity 
@@ -108,8 +123,10 @@ class Rectangle
 
 	bool collides (const Point p) const
 	{
-		if(p.x < corner.x || p.y < corner.y) return false;
-		if((p.x + w > corner.x + w) || (p.y + h < corner.y + h)) return false;
+		if(p.x < corner.x) return false;
+		if(p.y < corner.y) return false;
+		if(p.x > corner.x + w) return false;
+		if(p.y > corner.y + h) return false;
 
 		return true;
 	}
@@ -149,6 +166,17 @@ class Rectangle
 		return (dx*dx+dy*dy <= (circle.radius * circle.radius));
 	}
 
+	int quadrant (Point p)
+	{
+		assert( collides(p) && "point doesn't intersect any quads");
+		const int mx = corner.x + (w/2);
+		const int my = corner.y + (h/2);
+
+		if(p.x < mx && p.y < my) return 2;
+     		if(p.x > mx && p.y < my) return 1;
+     		if(p.x > mx && p.y > my) return 4;
+		if(p.x < mx && p.y > my) return 3;
+	}
 };
 	
 
