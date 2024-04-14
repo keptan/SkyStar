@@ -2,6 +2,7 @@
 #include "star.h"
 #include <SDL2pp/Renderer.hh>
 #include <SDL2pp/SDL2pp.hh>
+#include <filesystem>
 
 enum class InputMask
 {
@@ -14,6 +15,7 @@ enum class InputMask
 	Quit = 1 << 6,
 	LShift = 1 << 7,
 	PKey   = 1 << 8,
+	Space  = 1 << 9,
 };
 
 inline InputMask operator | (InputMask lhs, InputMask rhs)
@@ -51,6 +53,7 @@ struct GameState
 	unsigned int frameTime = 0;
 };
 
+
 void sweeper (WorldSystems& world, GameState& state)
 {
 	SDL_Event event;
@@ -67,6 +70,7 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_q: state.input |= InputMask::Quit; break;
 					case SDLK_LSHIFT: state.input |= InputMask::LShift; break;
 					case SDLK_p: state.input |= InputMask::PKey; break;
+					case SDLK_SPACE: state.input |= InputMask::Space; break;
 				}
 
 		} 
@@ -81,10 +85,19 @@ void sweeper (WorldSystems& world, GameState& state)
 					case SDLK_q: state.input ^= InputMask::Quit; break;
 					case SDLK_LSHIFT: state.input ^= InputMask::LShift; break;
 					case SDLK_p: state.input ^= InputMask::PKey; break;
+					case SDLK_SPACE: state.input ^= InputMask::Space; break;
 				}
 		}
 	}
 }
+
+struct Graphics
+{
+	std::unordered_map< std::string, std::shared_ptr<SDL2pp::Texture>> library;
+	Graphics (void) {
+	for(const auto& dir : std::filesystem::recursive_directory_iterator(DATA_PATH)) std::cout << dir << std::endl;}
+
+};
 
 struct GameWindow
 {
@@ -92,6 +105,7 @@ struct GameWindow
 	SDL2pp::SDLTTF 	sdl_ttf;
 	SDL2pp::Window	window;
 	SDL2pp::Renderer rendr;
+
 
 	GameWindow (void)
 		: sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO),
@@ -101,5 +115,7 @@ struct GameWindow
 		  rendr(window, -1, SDL_RENDERER_ACCELERATED)
 		{}
 };
+
+
 
 
