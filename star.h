@@ -37,10 +37,10 @@
 
 //ok we've decided that actually entities need to carry state on child relations so we'll do that instead
 using Entity = std::uint32_t;
-using ComponentType = std::uint8_t;
+using ComponentType = std::uint64_t;
 
 //we can only have 32 components in the game! we can easily upgrade this to 64 
-const ComponentType MAX_COMPONENTS = 32;
+const ComponentType MAX_COMPONENTS = 64;
 const Entity MAX_ENTITIES = 6400;
 
 //each entity will have a bitset saying which components they have
@@ -173,7 +173,7 @@ class SparseArray
 	//assuming that a cacheline is 64 bytes we can process these one cacheline at a time??
 	//im just throwing stuff at the wall here, idk the effecacy of this at all
 	//actually we rely on u_long being 64 bit down below, so no!
-	static constexpr size_t ChunkSize = sizeof(unsigned long) * 8;
+	static constexpr size_t ChunkSize = Max_T / 64;
 	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
 	static constexpr size_t Chunks = Max / ChunkSize;
 	//we have an array of bitsets, each bit flag tells us if that position in the array is filled
@@ -489,7 +489,6 @@ public:
 
 		if(components.find(typeName) == components.end())
 		{
-			std::cerr << typeName << " type not registered returning blank signature" << std::endl;
 			return 0;
 		}
 
