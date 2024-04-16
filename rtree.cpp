@@ -1,5 +1,6 @@
 #include "star.h"
 #include "geometry.h"
+#include <unordered_set>
 
 struct QElement
 {
@@ -158,28 +159,70 @@ struct QTree
 
 };
 
+struct hash_pair {
+    template <class T1, class T2>
+    size_t operator()(const std::pair<T1, T2>& p) const
+    {
+        auto hash1 = std::hash<T1>{}(p.first);
+        auto hash2 = std::hash<T2>{}(p.second);
+ 
+        if (hash1 != hash2) {
+            return hash1 ^ hash2;              
+        }
+         
+        // If hash1 == hash2, their XOR is zero.
+          return hash1;
+    }
+};
+
 int main (void)
 {
-	QTree qt( Rectangle(Point(0, 0), 100, 100));
+	QTree qt( Rectangle(Point(0, 0), 1000, 1000));
 
-	for(int i = 0; i < 100; i = i + 1)
-	for(int c = 0; c < 100; c = c + 1)
+	for(int i = 0; i < 1000; i = i + 1)
+	for(int c = 0; c < 1000; c = c + 1)
 	{
 		qt.insert(i, c);
 	}
 
-	for(int i = 0; i < 100; i = i + 2)
-	for(int c = 0; c < 100; c = c + 2)
+	for(int i = 0; i < 1000; i = i + 2)
+	for(int c = 0; c < 1000; c = c + 2)
 	{
 		qt.remove(i, c);
 	}
 
 
 
-	for(int i = 0; i < 100; i = i + 1)
-	for(int c = 0; c < 100; c = c + 1)
+	for(int i = 0; i < 1000; i = i + 1)
+	for(int c = 0; c < 1000; c = c + 1)
 	{
 	if(!qt.find(i, c)) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
 	}
+
+	/*
+	std::unordered_set<std::pair<int, int>, hash_pair> set;
+
+	for(int i = 0; i < 1000; i = i + 1)
+	for(int c = 0; c < 1000; c = c + 1)
+	{
+		set.insert({i, c});
+	}
+
+	for(int i = 0; i < 1000; i = i + 2)
+	for(int c = 0; c < 1000; c = c + 2)
+	{
+		set.erase({i, c});
+	}
+
+
+
+	for(int i = 0; i < 1000; i = i + 1)
+	for(int c = 0; c < 1000; c = c + 1)
+	{
+	if(!set.contains({i, c})) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
+	}
+	*/
+
 }
+
 
