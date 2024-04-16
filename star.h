@@ -90,7 +90,7 @@ public:
 	//log which spaces are free so that we can use them again, yay!
 	void destroy (const E id)
 	{
-		assert(id < Max && "destroying an out of bounds item");
+		assert(id < res.size() && "destroying an out of bounds item");
 		res[id] = {};
 		//res[id].reset();
 		recycled.push(id);
