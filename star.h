@@ -53,7 +53,7 @@ using Signature = std::bitset<MAX_COMPONENTS>;
 template <typename T, typename E, E Max>
 class Packed
 {
-	std::array<T, Max> res;
+	std::vector<T> res;
 	std::queue<E> recycled;
 	E count;//why is count a template instead of a size_t?  who knows!
 
@@ -75,13 +75,15 @@ public:
 		if(recycled.size())
 		{
 			const E use = recycled.front();
+
 			recycled.pop();
 			return use;
 		}
 		//this means we created too many entities and our program explodes
 		//fixme(!) arch problem
-		assert(count < Max && "Packed array is full!");
+		//assert(count < Max && "Packed array is full!");
 		E use = count++;
+		res.push_back({});
 		return use;
 	}
 
@@ -89,7 +91,8 @@ public:
 	void destroy (const E id)
 	{
 		assert(id < Max && "destroying an out of bounds item");
-		res[id].reset();
+		res[id] = {};
+		//res[id].reset();
 		recycled.push(id);
 	}
 
