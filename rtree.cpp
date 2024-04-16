@@ -136,6 +136,26 @@ struct QTree
 		return false;
 	}
 
+	void remove (int x, int y)
+	{
+		return removeH(x, y, 0, box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w);
+	}
+
+	void removeH (int x, int y, int r, int ax, int ay, int bx, int by)
+	{
+		int cx = (ax + bx) /2;
+		int cy = (ay + by) /2;
+
+
+		if(nodes[r].children == -1) return elementDestroy(nodes[r].elements, x, y);
+
+		if(x <= cx && y <= cy) return removeH(x, y, nodes[r].children + 0, ax, ay, cx, cy);
+		if(x >  cx && y <= cy) return removeH(x, y, nodes[r].children + 1, cx, ay, bx, cy);
+		if(x >  cx && y >  cy) return removeH(x, y, nodes[r].children + 2, cx, cy, bx, by);
+		if(x <= cx && y >  cy) return removeH(x, y, nodes[r].children + 3, ax, cy, cx, by);
+
+	}
+
 };
 
 int main (void)
@@ -145,9 +165,16 @@ int main (void)
 	for(int i = 0; i < 100; i = i + 1)
 	for(int c = 0; c < 100; c = c + 1)
 	{
-	for(int x = 0; x < 100; x++)
-	qt.insert(i, c);
+		qt.insert(i, c);
 	}
+
+	for(int i = 0; i < 100; i = i + 2)
+	for(int c = 0; c < 100; c = c + 2)
+	{
+		qt.remove(i, c);
+	}
+
+
 
 	for(int i = 0; i < 100; i = i + 1)
 	for(int c = 0; c < 100; c = c + 1)
