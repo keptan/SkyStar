@@ -22,12 +22,43 @@ struct QNode
 	{}
 };
 
+struct QQuery
+{
+	const int ax;
+	const int ay;
+	const int bx;
+	const int by;
+
+	QQuery descend (const int x, const int y) const
+	{
+		const int cx = (ax + bx) / 2;
+		const int cy = (ax + by) / 2;
+
+		if(x <= cx && y <= cy) return { ax, ay, cx, cy};
+		if(x >  cx && y <= cy) return { cx, ay, bx, cy};
+		if(x >  cx && y >  cy) return { cx, cy, bx, by};
+		return { ax, cy, cx, by};
+
+	}
+
+	int quadFind (const int x, const int y) const
+	{
+		const int cx = (ax + bx) / 2;
+		const int cy = (ax + by) / 2;
+
+		if(x <= cx && y <= cy) return 0;
+		if(x >  cx && y <= cy) return 1;
+		if(x >  cx && y >  cy) return 2;
+		return 3; 
+	}
+};
+
 struct QTree 
 {
 	Rectangle box;
 
 	std::vector<QNode> nodes;
-	Packed<QElement, int, 6400> elements;
+	Packed<QElement, int> elements;
 
 	QTree (Rectangle b)
 	: box(b)
@@ -61,18 +92,14 @@ struct QTree
 	}
 
 
-	void insert (int x, int y)
+	void insert (const int x, const int y)
 	{
-		return insertH(x, y, 0, box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h);
+		return insertH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h});
 	}
 
-	void insertH (int x, int y, int r, int ax, int ay, int bx, int by)
+	void insertH (const int x, const int y, const int r, const QQuery query)
 	{
-		int cx = (ax + bx) / 2;
-		int cy = (ay + by) / 2;
-
-
-		if(nodes[r].children == -1 && (elementCount(nodes[r].elements) < 5 || (bx - ax) < 10))
+		if(nodes[r].children == -1 && (elementCount(nodes[r].elements) < 2 || (query.bx - query.ax) < 10))
 		{
 
 			int e = elements.create();
@@ -98,10 +125,7 @@ struct QTree
 				const auto ey = elements.touch(elms).y;
 				int  er = -1;
 
-				if(ex <= cx && ey <= cy) er = nodes[r].children + 0;
-				if(ex >  cx && ey <= cy) er = nodes[r].children + 1;
-				if(ex >  cx && ey >  cy) er = nodes[r].children + 2;
-				if(ex <= cx && ey >  cy) er = nodes[r].children + 3;
+				er = nodes[r].children + query.quadFind(ex, ey);
 
 				const int old = elements.touch(elms).next;
 				elements.touch(elms).next = nodes[er].elements;
@@ -110,10 +134,7 @@ struct QTree
 			}
 		}
 
-		if(x <= cx && y <= cy) return insertH(x, y, nodes[r].children + 0, ax, ay, cx, cy);
-		if(x >  cx && y <= cy) return insertH(x, y, nodes[r].children + 1, cx, ay, bx, cy);
-		if(x >  cx && y >  cy) return insertH(x, y, nodes[r].children + 2, cx, cy, bx, by);
-		if(x <= cx && y >  cy) return insertH(x, y, nodes[r].children + 3, ax, cy, cx, by);
+		return insertH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
 	}
 
 	bool find (int x, int y)
@@ -159,19 +180,21 @@ struct QTree
 
 };
 
-struct hash_pair {
+struct hash_pair 
+{
     template <class T1, class T2>
     size_t operator()(const std::pair<T1, T2>& p) const
     {
         auto hash1 = std::hash<T1>{}(p.first);
         auto hash2 = std::hash<T2>{}(p.second);
  
-        if (hash1 != hash2) {
+        if (hash1 != hash2) 
+	{
             return hash1 ^ hash2;              
         }
          
         // If hash1 == hash2, their XOR is zero.
-          return hash1;
+        return hash1;
     }
 };
 
@@ -196,33 +219,6 @@ int main (void)
 	for(int i = 0; i < 1000; i = i + 1)
 	for(int c = 0; c < 1000; c = c + 1)
 	{
-	if(!qt.find(i, c)) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
+		if(!qt.find(i, c)) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
 	}
-
-	/*
-	std::unordered_set<std::pair<int, int>, hash_pair> set;
-
-	for(int i = 0; i < 1000; i = i + 1)
-	for(int c = 0; c < 1000; c = c + 1)
-	{
-		set.insert({i, c});
-	}
-
-	for(int i = 0; i < 1000; i = i + 2)
-	for(int c = 0; c < 1000; c = c + 2)
-	{
-		set.erase({i, c});
-	}
-
-
-
-	for(int i = 0; i < 1000; i = i + 1)
-	for(int c = 0; c < 1000; c = c + 1)
-	{
-	if(!set.contains({i, c})) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
-	}
-	*/
-
 }
-
-
