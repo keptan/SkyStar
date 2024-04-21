@@ -139,43 +139,25 @@ struct QTree
 
 	bool find (int x, int y)
 	{
-		return findH(x, y, 0, box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w);
+		return findH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
 	}
 
-	bool findH (int x, int y, int r, int ax, int ay, int bx, int by)
+	bool findH (int x, int y, int r, QQuery query)
 	{
-		int cx = (ax + bx) /2;
-		int cy = (ay + by) /2;
-
-
 		if(nodes[r].children == -1) return elementFind(nodes[r].elements, x, y);
 
-		if(x <= cx && y <= cy) return findH(x, y, nodes[r].children + 0, ax, ay, cx, cy);
-		if(x >  cx && y <= cy) return findH(x, y, nodes[r].children + 1, cx, ay, bx, cy);
-		if(x >  cx && y >  cy) return findH(x, y, nodes[r].children + 2, cx, cy, bx, by);
-		if(x <= cx && y >  cy) return findH(x, y, nodes[r].children + 3, ax, cy, cx, by);
-
-		return false;
+		return findH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
 	}
 
 	void remove (int x, int y)
 	{
-		return removeH(x, y, 0, box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w);
+		return removeH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
 	}
 
-	void removeH (int x, int y, int r, int ax, int ay, int bx, int by)
+	void removeH (int x, int y, int r,QQuery query)
 	{
-		int cx = (ax + bx) /2;
-		int cy = (ay + by) /2;
-
-
 		if(nodes[r].children == -1) return elementDestroy(nodes[r].elements, x, y);
-
-		if(x <= cx && y <= cy) return removeH(x, y, nodes[r].children + 0, ax, ay, cx, cy);
-		if(x >  cx && y <= cy) return removeH(x, y, nodes[r].children + 1, cx, ay, bx, cy);
-		if(x >  cx && y >  cy) return removeH(x, y, nodes[r].children + 2, cx, cy, bx, by);
-		if(x <= cx && y >  cy) return removeH(x, y, nodes[r].children + 3, ax, cy, cx, by);
-
+		return removeH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
 	}
 
 };
