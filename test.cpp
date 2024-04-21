@@ -28,12 +28,14 @@ auto main (void) -> int
 	WorldSystems world;
 	GameWindow window;
 	GameState state;
+	Graphics graphics;
 	state.time = SDL_GetTicks();
 
 	auto lala	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/lala_flying.png");
 	auto fire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/flame.png");
 	auto greenFire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/greenFlame.png");
 	auto wallpaper = std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/wall.png");
+	auto lBolt  	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/bolt.png");
 
 	const auto target  = player(world);
 	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
@@ -59,6 +61,14 @@ auto main (void) -> int
 				auto e = fireball(world, state);
 				world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 				std::cout << world.eCount() << std::endl;
+			}
+		}
+		if ((state.input & InputMask::Space) == InputMask::Space)
+		{
+			if(state.frameCount % 10 == 0)
+			{
+				auto e = bolt(world, state);
+				world.addComponent<sprite>(e, {lBolt, 16, 8, 1, 0});
 			}
 		}
 
