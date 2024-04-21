@@ -31,31 +31,30 @@ struct QQuery
 
 	QQuery descend (const int x, const int y) const
 	{
-		const int cx = (ax + bx) / 2;
-		const int cy = (ax + by) / 2;
+		const int cx = ( ax + bx) / 2;
+		const int cy = ( ax + by) / 2;
 
-		if(x <= cx && y <= cy) return { ax, ay, cx, cy};
-		if(x >  cx && y <= cy) return { cx, ay, bx, cy};
-		if(x >  cx && y >  cy) return { cx, cy, bx, by};
+		if( x <= cx && y <= cy) return { ax, ay, cx, cy};
+		if( x >  cx && y <= cy) return { cx, ay, bx, cy};
+		if( x >  cx && y >  cy) return { cx, cy, bx, by};
 		return { ax, cy, cx, by};
-
 	}
 
 	int quadFind (const int x, const int y) const
 	{
-		const int cx = (ax + bx) / 2;
-		const int cy = (ax + by) / 2;
+		const int cx = ( ax + bx) / 2;
+		const int cy = ( ax + by) / 2;
 
-		if(x <= cx && y <= cy) return 0;
-		if(x >  cx && y <= cy) return 1;
-		if(x >  cx && y >  cy) return 2;
+		if( x <= cx && y <= cy) return 0;
+		if( x >  cx && y <= cy) return 1;
+		if( x >  cx && y >  cy) return 2;
 		return 3; 
 	}
 };
 
 struct QTree 
 {
-	Rectangle box;
+	const Rectangle box;
 
 	std::vector<QNode> nodes;
 	Packed<QElement, int> elements;
@@ -66,20 +65,20 @@ struct QTree
 		nodes.push_back( QNode());
 	}
 
-	int elementCount (int i, int c = 0)
+	int elementCount (const int i, const int c = 0) const
 	{
 		if(i == -1) return c;
 		return elementCount(elements.touch(i).next, c + 1);
 	}
 
-	bool elementFind (int i, int x, int y)
+	bool elementFind (const int i, const int x, const int y) const
 	{
 		if(i == -1) return false;
 		if(elements.touch(i).x ==x && elements.touch(i).y == y) return true;
 		return elementFind(elements.touch(i).next, x, y);
 	}
 
-	void elementDestroy (int i, int x, int y, int prev = -1)
+	void elementDestroy (const int i, const int x, const int y, const int prev = -1)
 	{
 		if(i == -1) return;
 		if(elements.touch(i).x == x && elements.touch(i).y == y)
@@ -90,7 +89,6 @@ struct QTree
 		}
 		return elementDestroy(elements.touch(i).next, x, y, i);
 	}
-
 
 	void insert (const int x, const int y)
 	{
@@ -137,24 +135,24 @@ struct QTree
 		return insertH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
 	}
 
-	bool find (int x, int y)
+	bool find (const int x, const int y) const
 	{
 		return findH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
 	}
 
-	bool findH (int x, int y, int r, QQuery query)
+	bool findH (const int x, const int y, const int r, const QQuery query) const
 	{
 		if(nodes[r].children == -1) return elementFind(nodes[r].elements, x, y);
 
 		return findH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
 	}
 
-	void remove (int x, int y)
+	void remove (const int x, const int y)
 	{
 		return removeH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
 	}
 
-	void removeH (int x, int y, int r,QQuery query)
+	void removeH (const int x, const int y, const int r,const QQuery query)
 	{
 		if(nodes[r].children == -1) return elementDestroy(nodes[r].elements, x, y);
 		return removeH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
