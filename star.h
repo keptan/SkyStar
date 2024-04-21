@@ -104,6 +104,11 @@ public:
 		return res[id];
 	}
 
+	const T& touch (const E id) const
+	{
+		return res[id];
+	}
+
 	//returns how many spaces are currently in use in our array
 	size_t size (void)
 	{
@@ -606,7 +611,4 @@ class WorldSystems
 		return entities.size();
 	}
 };
-		
-	
-
 
