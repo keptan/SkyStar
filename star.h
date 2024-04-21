@@ -50,7 +50,7 @@ using Signature = std::bitset<MAX_COMPONENTS>;
 //this is a packed array that we use as the global store of which entities are associated with which components
 //well actually all en entity is is just a collection of components right?
 //yes
-template <typename T, typename E, E Max>
+template <typename T, typename E>
 class Packed
 {
 	std::vector<T> res;
@@ -162,7 +162,7 @@ public:
 //we're actually doing a lot better than the reference iplementation that i stole
 //the guy seems to know a lot about ECS programming but is also retarded because he's bad at koding 
 //even though he's a professor
-using EMan = Packed<Signature, Entity, MAX_ENTITIES>; 
+using EMan = Packed<Signature, Entity>; 
 
 //trying to use a skiplist to skip holes when processing
 //if we can detect holes on insertion that is?
