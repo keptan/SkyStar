@@ -1,6 +1,7 @@
 #include "star.h"
 #include "geometry.h"
 #include <experimental/random>
+#include <stack>
 
 /* should be a quad-tree to hold entities that can be queried efficiently using bounding boxes
  * lets take a look if its real or not*/
@@ -24,8 +25,9 @@ struct QNode
 {
 	std::array<int, 4> children;
 	int elements;
+	int size;
 	QNode (void)
-		:elements(-1)
+		:elements(-1), size(0)
 	{
 		children[0] = -1;
 	}
@@ -83,12 +85,6 @@ struct QTree
 		root = nodes.create();
 	}
 
-	int elementCount (const int i, const int c = 0) const
-	{
-		if(i == -1) return c;
-		return elementCount(elements.touch(i).next, c + 1);
-	}
-
 	bool elementFind (const int i, const int x, const int y) const
 	{
 		if(i == -1) return false;
@@ -113,13 +109,29 @@ struct QTree
 		insertH(x, y, root, {box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h});
 	}
 
+	bool validateTree (int r)
+	{
+		for(const auto &n : nodes)
+		{
+			if(n.children[0] == -1) continue;
+			int acc = std::accumulate(
+					n.children.begin(), n.children.end(), 0,
+					[this](int a, const auto& b) { return a + nodes[b].size;});
+
+			if(acc != n.size) return false;
+		}
+
+		return true;
+	}
+
 	void insertH (const int x, const int y, const int r, const QQuery query)
 	{
 		//when we insert we want to avoid splitting the quad depending on the population of our quad
 		//and the size. we don't go below size 10 here
-		if( (nodes[r].children[0] == -1 && (elementCount(nodes[r].elements) < 10) || (query.bx - query.ax) < 10))
+		if( (nodes[r].children[0] == -1 && (nodes[r].size < 10) || (query.bx - query.ax) < 10))
 		{
 
+			nodes[r].size++;
 			int e = elements.create();
 			elements.touch(e) = QElement(x, y, -1, nodes[r].elements);
 			nodes[r].elements = e;
@@ -143,12 +155,15 @@ struct QTree
 				const int	 er = nodes[r].children[query.quadFind(ex, ey)];
 				const int old = elements.touch(elms).next;
 
+
 				elements.touch(elms).next = nodes[er].elements;
 				nodes[er].elements = elms;
+				nodes[er].size++;
 				elms = old;
 			}
 		}
 
+		nodes[r].size++;
 		return insertH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
 	}
 
@@ -227,4 +242,6 @@ int main (void)
 	{
 		if(!qt.find(i, c)) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
 	}
+
+	std::cout << qt.validateTree(qt.root) << " validated?" << std::endl;
 }
