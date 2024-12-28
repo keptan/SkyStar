@@ -22,11 +22,13 @@ struct QElement
 //number of elements and the first child in the packed array
 struct QNode
 {
-	int children;
+	std::array<int, 4> children;
 	int elements;
 	QNode (void)
-		: children(-1), elements(-1)
-	{}
+		:elements(-1)
+	{
+		children[0] = -1;
+	}
 };
 
 //the query struct will be a bounding box that searches for intersections with the smaller boxes
@@ -69,14 +71,16 @@ struct QTree
 
 	//nodes are different to elements because there's a fixed amount in a fixed order
 	//elements will be constantly spawning in and out of existence
-	std::vector<QNode> nodes;
+	Packed<QNode, int> nodes;
 	Packed<QElement, int> elements;
+	int root;
 
 	//we start off with one big node that holds everything
 	QTree (Rectangle b)
 	: box(b)
 	{
-		nodes.push_back( QNode());
+
+		root = nodes.create();
 	}
 
 	int elementCount (const int i, const int c = 0) const
@@ -106,14 +110,14 @@ struct QTree
 
 	void insert (const int x, const int y)
 	{
-		insertH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h});
+		insertH(x, y, root, {box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h});
 	}
 
 	void insertH (const int x, const int y, const int r, const QQuery query)
 	{
 		//when we insert we want to avoid splitting the quad depending on the population of our quad
 		//and the size. we don't go below size 10 here
-		if( (nodes[r].children == -1 && (elementCount(nodes[r].elements) < 10) || (query.bx - query.ax) < 10))
+		if( (nodes[r].children[0] == -1 && (elementCount(nodes[r].elements) < 10) || (query.bx - query.ax) < 10))
 		{
 
 			int e = elements.create();
@@ -122,13 +126,12 @@ struct QTree
 			return;
 		}
 
-		if(nodes[r].children == -1)
+		if(nodes[r].children[0] == -1)
 		{
-			nodes[r].children = nodes.size();
-			nodes.push_back( QNode());
-			nodes.push_back( QNode());
-			nodes.push_back( QNode());
-			nodes.push_back( QNode());
+			for(int i = 0; i < 4; i++)
+			{
+				nodes[r].children[i] = nodes.create();
+			}
 
 			int elms = nodes[r].elements;
 			nodes[r].elements = -1;
@@ -137,7 +140,7 @@ struct QTree
 			{
 				const auto ex = elements.touch(elms).x;
 				const auto ey = elements.touch(elms).y;
-				const int	 er = nodes[r].children + query.quadFind(ex, ey);
+				const int	 er = nodes[r].children[query.quadFind(ex, ey)];
 				const int old = elements.touch(elms).next;
 
 				elements.touch(elms).next = nodes[er].elements;
@@ -146,7 +149,7 @@ struct QTree
 			}
 		}
 
-		return insertH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
+		return insertH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
 	}
 
 	//finding a specific node??
@@ -157,9 +160,9 @@ struct QTree
 
 	bool findH (const int x, const int y, const int r, const QQuery query) const
 	{
-		if(nodes[r].children == -1) return elementFind(nodes[r].elements, x, y);
+		if(nodes[r].children[0] == -1) return elementFind(nodes[r].elements, x, y);
 
-		return findH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
+		return findH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
 	}
 
 	void remove (const int x, const int y)
@@ -170,13 +173,13 @@ struct QTree
 	//can we balance the quadtree on the way out?
 	void removeH (const int x, const int y, const int r,const QQuery query)
 	{
-		if(nodes[r].children == -1) 
+		if(nodes[r].children[0] == -1) 
 		{
-			elementDestroy(nodes[r].elements, x, y);
+			return elementDestroy(nodes[r].elements, x, y);
 
 			//return elementDestroy(nodes[r].elements, x, y);
 		}
-		return removeH(x, y, nodes[r].children + query.quadFind(x, y), query.descend(x, y));
+		return removeH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
 	}
 
 };
