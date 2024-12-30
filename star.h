@@ -109,6 +109,17 @@ public:
 		return res[id];
 	}
 
+	const T& operator [] (const E id) const
+	{
+		return touch(id);
+	}
+
+	T& operator [] (const E id)
+	{
+		return touch(id);
+	}
+
+
 	//returns how many spaces are currently in use in our array
 	size_t size (void)
 	{
