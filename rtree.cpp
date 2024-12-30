@@ -94,7 +94,6 @@ struct QNode
 			{
 				if( boxes[i].contains( e.box))
 						{
-							std::cout << "putting into box: " << i << std::endl;
 							boxElements[i].push_back(e);
 							flag = false;
 							break;
@@ -102,7 +101,6 @@ struct QNode
 			}
 			if(flag) elements.push_back(e);
 		}
-		std::cout << "still remaining: " << elements.size() << std::endl;
 
 		for(int i = 0; i < 4; i++)
 		{
@@ -113,6 +111,14 @@ struct QNode
 				children[i] = n;
 			}
 		}
+	}
+
+	void rbalance (Packed<QNode, size_t>& nodes)
+	{
+		if(elements.size() < 10 || (box.h < 10) || (box.w < 10)) return;
+		balance(nodes);
+
+		for(const auto c : children) if(c != -1) nodes[c].rbalance(nodes);
 	}
 
 };
@@ -158,8 +164,8 @@ int main (void)
 		const int b1 = std::experimental::randint(0, 199);
 		const int b2 = b1 + std::experimental::randint(1, 10);
 		const Rectangle r{{a1, b1}, {a2, b2}};
-		std::cout << r.corner.x << ' ' << r.corner.y << ' ' << r.w << ' ' << r.h << '\n';
 		nodes[root].insert(r);
 	}
-	nodes[root].balance(nodes);
+	nodes[root].rbalance(nodes);
+	std::cout << nodes.size() << " nodes created" << std::endl;
 }
