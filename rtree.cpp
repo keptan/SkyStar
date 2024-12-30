@@ -2,6 +2,7 @@
 #include "geometry.h"
 #include <experimental/random>
 #include <stack>
+#include <algorithm>
 
 /* should be a quad-tree to hold entities that can be queried efficiently using bounding boxes
  * lets take a look if its real or not*/
@@ -11,191 +12,118 @@
 //do we need to keep track of next? yes to preserve ordering in the packed array?
 struct QElement
 {
-	int x, y;
+	Rectangle box;
 	Entity entity;
-	int next;
 
-	QElement (int x = -1, int y = -1, Entity e = -1, int n = -1)
-		: x(x), y(y), entity(e), next(n)
+	QElement (Rectangle b, Entity e = -1)
+		: box(b), entity(e)
 	{}
 };
 
 //number of elements and the first child in the packed array
 struct QNode
 {
-	std::array<int, 4> children;
-	int elements;
-	int size;
+	Rectangle box;
+	std::array< int, 4> children;
+	std::vector<QElement> elements;
+
 	QNode (void)
-		:elements(-1), size(0)
 	{
-		children[0] = -1;
-	}
-};
+		children.fill(-1);
+	};
 
-//the query struct will be a bounding box that searches for intersections with the smaller boxes
-struct QQuery
-{
-	const int ax;
-	const int ay;
-	const int bx;
-	const int by;
-
-	//descending through a query means shrinking the bounding box through a quadtree
-	QQuery descend (const int x, const int y) const
+	QNode (Rectangle b)
+		: box(b)
 	{
-		const int cx = ( ax + bx) / 2;
-		const int cy = ( ay + by) / 2;
-
-		if( x <= cx && y <= cy) return { ax, ay, cx, cy};
-		if( x >  cx && y <= cy) return { cx, ay, bx, cy};
-		if( x >  cx && y >  cy) return { cx, cy, bx, by};
-		return { ax, cy, cx, by};
+		children.fill(-1);
 	}
 
-	//checking what quadrant we're in? redundant to the above function
-	int quadFind (const int x, const int y) const
+	QNode (Rectangle b, std::vector<QElement>&& data)
+		: box(b), elements( std::move(data))
 	{
-		const int cx = ( ax + bx) / 2;
-		const int cy = ( ay + by) / 2;
-
-		if( x <= cx && y <= cy) return 0;
-		if( x >  cx && y <= cy) return 1;
-		if( x >  cx && y >  cy) return 2;
-		return 3; 
+		children.fill(-1);
 	}
+
+	void insert (QElement e)
+	{
+		elements.push_back(e);
+	}
+
+	void balance ( Packed<QNode, size_t>& nodes)
+	{
+		//split elements halfway excluding elements that straddle the divide..
+		const int xBoundray = [this]()
+		{
+			std::sort( elements.begin(), elements.end(), 
+					[this](const auto a, const auto b)
+					{
+						return (a.box.corner.x + a.box.w / 2) > (b.box.corner.x + b.box.w /2);
+					});
+			const size_t middle = elements.size() / 2;
+			return elements[middle].box.corner.x + elements[middle].box.w / 2;
+		}();
+		const int yBoundray =[this]()
+		{
+			std::sort( elements.begin(), elements.end(), 
+					[this](const auto a, const auto b)
+					{
+						return (a.box.corner.y + a.box.h / 2) > (b.box.corner.y + b.box.h /2);
+					});
+
+			const size_t middle = elements.size() / 2;
+			return elements[middle].box.corner.y + elements[middle].box.h / 2;
+		}();
+
+		std::array< Rectangle, 4> boxes = 
+		{
+			Rectangle{box.corner,{xBoundray, yBoundray}},
+			Rectangle{{xBoundray, box.corner.y}, {box.corner.x + box.w, yBoundray}},
+			Rectangle{{box.corner.x, yBoundray}, {xBoundray, box.corner.y + box.h}},
+			Rectangle{{xBoundray, yBoundray}, {box.corner.x + box.w, box.corner.y + box.h}}
+		};
+
+		std::array< std::vector<QElement>,4> boxElements;
+
+		std::vector<QElement> el = elements;
+		elements.clear();
+
+		for(const auto& e : el)
+		{
+			bool flag = true;
+			for(int i = 0; i < 4; i++)
+			{
+				if( boxes[i].contains( e.box))
+						{
+							std::cout << "putting into box: " << i << std::endl;
+							boxElements[i].push_back(e);
+							flag = false;
+							break;
+						}
+			}
+			if(flag) elements.push_back(e);
+		}
+		std::cout << "still remaining: " << elements.size() << std::endl;
+
+		for(int i = 0; i < 4; i++)
+		{
+			if(boxElements[i].size())
+			{
+				const auto n = nodes.create();
+				nodes[n] = QNode{boxes[i], std::move( boxElements[i])}; 
+				children[i] = n;
+			}
+		}
+	}
+
 };
 
 //our actual api and datastructure
 struct QTree 
 {
-	const Rectangle box;
-
 	//nodes are different to elements because there's a fixed amount in a fixed order
 	//elements will be constantly spawning in and out of existence
-	Packed<QNode, int> nodes;
-	Packed<QElement, int> elements;
+	std::vector<int> nodes;
 	int root;
-
-	//we start off with one big node that holds everything
-	QTree (Rectangle b)
-	: box(b)
-	{
-
-		root = nodes.create();
-	}
-
-	bool elementFind (const int i, const int x, const int y) const
-	{
-		if(i == -1) return false;
-		if(elements.touch(i).x ==x && elements.touch(i).y == y) return true;
-		return elementFind(elements.touch(i).next, x, y);
-	}
-
-	void elementDestroy (const int i, const int x, const int y, const int prev = -1)
-	{
-		if(i == -1) return;
-		if(elements.touch(i).x == x && elements.touch(i).y == y)
-		{
-			if(prev != -1) elements.touch(prev).next = elements.touch(i).next;
-			elements.destroy(i);
-			return;
-		}
-		return elementDestroy(elements.touch(i).next, x, y, i);
-	}
-
-	void insert (const int x, const int y)
-	{
-		insertH(x, y, root, {box.corner.x, box.corner.y, box.corner.x + box.w, box.corner.y + box.h});
-	}
-
-	bool validateTree (int r)
-	{
-		for(const auto &n : nodes)
-		{
-			if(n.children[0] == -1) continue;
-			int acc = std::accumulate(
-					n.children.begin(), n.children.end(), 0,
-					[this](int a, const auto& b) { return a + nodes[b].size;});
-
-			if(acc != n.size) return false;
-		}
-
-		return true;
-	}
-
-	void insertH (const int x, const int y, const int r, const QQuery query)
-	{
-		//when we insert we want to avoid splitting the quad depending on the population of our quad
-		//and the size. we don't go below size 10 here
-		if( (nodes[r].children[0] == -1 && (nodes[r].size < 10) || (query.bx - query.ax) < 10))
-		{
-
-			nodes[r].size++;
-			int e = elements.create();
-			elements.touch(e) = QElement(x, y, -1, nodes[r].elements);
-			nodes[r].elements = e;
-			return;
-		}
-
-		if(nodes[r].children[0] == -1)
-		{
-			for(int i = 0; i < 4; i++)
-			{
-				nodes[r].children[i] = nodes.create();
-			}
-
-			int elms = nodes[r].elements;
-			nodes[r].elements = -1;
-
-			while(elms != -1)
-			{
-				const auto ex = elements.touch(elms).x;
-				const auto ey = elements.touch(elms).y;
-				const int	 er = nodes[r].children[query.quadFind(ex, ey)];
-				const int old = elements.touch(elms).next;
-
-
-				elements.touch(elms).next = nodes[er].elements;
-				nodes[er].elements = elms;
-				nodes[er].size++;
-				elms = old;
-			}
-		}
-
-		nodes[r].size++;
-		return insertH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
-	}
-
-	//finding a specific node??
-	bool find (const int x, const int y) const
-	{
-		return findH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
-	}
-
-	bool findH (const int x, const int y, const int r, const QQuery query) const
-	{
-		if(nodes[r].children[0] == -1) return elementFind(nodes[r].elements, x, y);
-
-		return findH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
-	}
-
-	void remove (const int x, const int y)
-	{
-		return removeH(x, y, 0, {box.corner.x, box.corner.y, box.corner.x + box.h, box.corner.y + box.w});
-	}
-
-	//can we balance the quadtree on the way out?
-	void removeH (const int x, const int y, const int r,const QQuery query)
-	{
-		if(nodes[r].children[0] == -1) 
-		{
-			return elementDestroy(nodes[r].elements, x, y);
-
-			//return elementDestroy(nodes[r].elements, x, y);
-		}
-		return removeH(x, y, nodes[r].children[query.quadFind(x, y)], query.descend(x, y));
-	}
 
 };
 
@@ -219,29 +147,19 @@ struct hash_pair
 
 int main (void)
 {
-	QTree qt( Rectangle(Point(0, 0), 1000, 1000));
+	Packed<QNode, size_t> nodes;
+	int root = nodes.create();
+	nodes[root] = {{{0,0},{1000,1000}}};
 
-
-	for(int i = 0; i < 10000; i++) 
+	for(int i = 0; i < 1000; i++)
 	{
-		const int xPos = std::experimental::randint(0, 1000);
-		const int yPos = std::experimental::randint(0, 1000);
-		qt.insert(xPos,yPos);
+		const int a1 = std::experimental::randint(0, 199);
+		const int a2 = a1 + std::experimental::randint(1, 10);
+		const int b1 = std::experimental::randint(0, 199);
+		const int b2 = b1 + std::experimental::randint(1, 10);
+		const Rectangle r{{a1, b1}, {a2, b2}};
+		std::cout << r.corner.x << ' ' << r.corner.y << ' ' << r.w << ' ' << r.h << '\n';
+		nodes[root].insert(r);
 	}
-
-
-	for(int i = 0; i < 10; i = i + 20)
-	for(int c = 0; c < 10; c = c + 20)
-	{
-		//qt.remove(i, c);
-	}
-
-
-	for(int i = 0; i < 10; i = i + 1)
-	for(int c = 0; c < 10; c = c + 1)
-	{
-		if(!qt.find(i, c)) std::cout << "couldn't find: " << i << ' ' << c << std::endl;
-	}
-
-	std::cout << qt.validateTree(qt.root) << " validated?" << std::endl;
+	nodes[root].balance(nodes);
 }
