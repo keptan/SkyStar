@@ -22,10 +22,10 @@ struct pos
 class Point 
 {
 	public:
-	int x = 0;
-	int y = 0;
+	int x;
+	int y;
 
-	Point (int x, int y)
+	Point (int x = 0, int y = 0)
 		: x(x), y(y)
 	{}
 
@@ -117,9 +117,25 @@ class Rectangle
 	Point corner;
 	int w, h;
 
+	Rectangle (void)
+		: corner(0,0), w(0), h(0)
+	{}
+
 	Rectangle (Point p, int w, int h)
 		: corner(p), w(w), h(h)
 	{}
+
+	Rectangle (Point c1, Point c2)
+	{
+		int lx = std::min(c1.x, c2.x);
+		int rx = std::max(c1.x, c2.x);
+		int ty = std::min(c1.y, c2.y);
+		int by = std::max(c1.y, c2.y);
+
+		corner = Point(lx, ty);
+		w 		 = rx - lx;
+		h			 = by - ty;
+	}
 
 	bool collides (const Point p) const
 	{
@@ -147,6 +163,24 @@ class Rectangle
 			return false; 
 	  
 		return true; 
+	}
+
+	bool contains (const Rectangle r) const
+	{
+		Point l1 = corner;
+		Point l2 = r.corner;
+		Point r1(corner.x + w, corner.y + h);
+		Point r2(r.corner.x + r.w, r.corner.y + r.h);
+
+		//top corner is inside top corner
+		if(l1.x > l2.x ||l1.y > l2.y)
+			return false;
+
+		//bottom corner is inside bottom corner
+		if(r2.x > r1.x || r2.y > r1.y)
+			return false;
+
+		return true;
 	}
 
 	bool collides (const Circle circle) const 
