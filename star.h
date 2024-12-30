@@ -97,10 +97,8 @@ public:
 	}
 
 	//either set, or retieve a calue from our array 
-	T& touch (const E id, const std::optional<T> data = std::nullopt)
+	T& touch (const E id)
 	{
-		if(data == std::nullopt) return res[id];
-		res[id] = data.value();
 		return res[id];
 	}
 
@@ -549,7 +547,7 @@ class WorldSystems
 	Entity newEntity (void)
 	{
 		auto out = entities.create();
-		entities.touch(out, 0);
+		entities[out] = 0;
 		return out;
 	}
 
