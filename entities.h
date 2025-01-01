@@ -12,6 +12,7 @@ Entity player (WorldSystems& world)
 	world.addComponent<pos>(e, {x: xPos, y: yPos});
 	world.addComponent<playerTag>(e, {});
 	world.addComponent<velocity>(e, {});
+	world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
 
 	return e;
 }
@@ -30,6 +31,8 @@ Entity fireball (WorldSystems& world, GameState& state)
 	world.addComponent<outOfBoundsTag>(e, {});
 	world.addComponent<pos>(e, {std::experimental::randint(0, 640), -10});
 	world.addComponent<velocity>(e, {0, std::experimental::randint(90, 150)});
+	world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
+
 
 	return e;
 };
@@ -50,6 +53,7 @@ Entity bolt (WorldSystems& world, GameState& state)
 
 		world.addComponent<pos>(e, space);
 		world.addComponent<velocity>(e, {0, -250});
+		world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
 	}
 
 	return e;
