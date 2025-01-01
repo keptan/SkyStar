@@ -14,7 +14,7 @@ struct pos
 
 	int distance (const pos& p) const
 	{
-		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
+		return std::sqrt( std::pow( x - p.x, 2) + std::pow(y - p.y, 2));
 	}
 
 };
@@ -22,20 +22,20 @@ struct pos
 class Point 
 {
 	public:
-	int x;
-	int y;
+	double x;
+	double y;
 
-	Point (int x = 0, int y = 0)
+	Point (double x = 0, double y = 0)
 		: x(x), y(y)
 	{}
 
 	Point (pos p)
-		: x(int(p.x)), y(int(p.y))
+		: x(p.x), y(p.y)
 	{}
 
 	int distance (const Point& p) const
 	{
-		return std::sqrt( std::pow( int(x) - int(p.x), 2) + std::pow(int(y) - int(p.y), 2));
+		return std::sqrt( std::pow( x - p.x, 2) + std::pow(y - p.y, 2));
 	}
 
 	bool operator== (const Point& a) const
@@ -55,9 +55,9 @@ class Point
 class Velocity 
 {
 	public:
-	int dx, dy;
+	double dx, dy;
 
-	Velocity (int x = 0, int y = 0)
+	Velocity (double x = 0, double y = 0)
 		: dx(x), dy(y)
 	{}
 
@@ -92,9 +92,9 @@ class Circle
 {
 	public:
 	Point center;
-	int radius;
+	double radius;
 
-	Circle (Point p, int r)
+	Circle (Point p, double r)
 		: center(p), radius(r)
 	{}
 };
@@ -115,22 +115,22 @@ class Rectangle
 {
 	public:
 	Point corner;
-	int w, h;
+	double w, h;
 
 	Rectangle (void)
 		: corner(0,0), w(0), h(0)
 	{}
 
-	Rectangle (Point p, int w, int h)
+	Rectangle (Point p, double w, double h)
 		: corner(p), w(w), h(h)
 	{}
 
 	Rectangle (Point c1, Point c2)
 	{
-		int lx = std::min(c1.x, c2.x);
-		int rx = std::max(c1.x, c2.x);
-		int ty = std::min(c1.y, c2.y);
-		int by = std::max(c1.y, c2.y);
+		double lx = std::min(c1.x, c2.x);
+		double rx = std::max(c1.x, c2.x);
+		double ty = std::min(c1.y, c2.y);
+		double by = std::max(c1.y, c2.y);
 
 		corner = Point(lx, ty);
 		w 		 = rx - lx;
@@ -159,7 +159,7 @@ class Rectangle
 			return false; 
 	  
 		// If one rectangle is above other 
-		if (l1.y <= r2.y || l2.y <= r1.y) 
+		if (l1.y >= r2.y || l2.y >= r1.y) 
 			return false; 
 	  
 		return true; 
@@ -185,8 +185,8 @@ class Rectangle
 
 	bool collides (const Circle circle) const 
 	{
-		int distX = std::abs(circle.center.x - corner.x - w / 2);
-		int distY = std::abs(circle.center.y - corner.y - h / 2);
+		double distX = std::abs(circle.center.x - corner.x - w / 2);
+		double distY = std::abs(circle.center.y - corner.y - h / 2);
 
 		if (distX > (w /2 + circle.radius)) return false;
 		if (distY > (h /2 + circle.radius)) return false;
@@ -194,22 +194,10 @@ class Rectangle
 		if (distX <= (w / 2)) return true;
 		if (distY <= (h / 2)) return true;
 
-		int dx = distX - w/2;
-		int dy = distY - h/2;
+		double dx = distX - w/2;
+		double dy = distY - h/2;
 
 		return (dx*dx+dy*dy <= (circle.radius * circle.radius));
-	}
-
-	int quadrant (Point p)
-	{
-		assert( collides(p) && "point doesn't intersect any quads");
-		const int mx = corner.x + (w/2);
-		const int my = corner.y + (h/2);
-
-		if(p.x < mx && p.y < my) return 2;
-     		if(p.x > mx && p.y < my) return 1;
-     		if(p.x > mx && p.y > my) return 4;
-		if(p.x < mx && p.y > my) return 3;
 	}
 };
 	
