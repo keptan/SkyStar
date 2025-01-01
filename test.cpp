@@ -11,6 +11,7 @@
 #include "components.h"
 #include "systems.h"
 #include "entities.h"
+#include "rtree.h"
 
 template <typename F>
 unsigned int time (const F f)
@@ -26,6 +27,7 @@ auto main (void) -> int
 {
 
 	WorldSystems world;
+	QTree space{ Rectangle{{0,0}, 640, 480}};
 	GameWindow window;
 	GameState state;
 	Graphics graphics;
@@ -45,10 +47,12 @@ auto main (void) -> int
 	world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
 		
 
-	unsigned int averageFrameTime;
+	unsigned int averageFrameTime = 0;
 
 	for(int i = 0;; i++)
 	{
+		window.rendr.SetDrawColor(0,0,0,255);
+		window.rendr.Clear();
 		const auto tick = SDL_GetTicks();
 		state.frameTime = tick - state.time;
 		state.time = tick;
@@ -81,6 +85,9 @@ auto main (void) -> int
 		velocitySystem(world, state);
 		outOfBounds(world, state);
 		pCallbackSystem(world, state);
+		spaceSystem(world, state, window.rendr, space);
+
+		window.rendr.Present();
 
 		state.frameCount++;
 		const auto endFrame = SDL_GetTicks();
