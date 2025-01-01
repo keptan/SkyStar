@@ -14,7 +14,6 @@
 #include <memory>
 #include <type_traits>
 #include <vector>
-#include "star.h"
 
 //a simple entity component system!
 //if you google it you can find out about this
@@ -62,6 +61,14 @@ public:
 	Packed (void)
 		: count(0)
 	{}
+
+	//nuke everything
+	void clear (void)
+	{
+		recycled = std::queue<E>();
+		res.clear();
+		count = 0;
+	}
 
 	//we always try and fill a previously occupied spot in the array 
 	//such that the array always remains 'packed', instead of sparse
