@@ -4,6 +4,7 @@
 #include "star.h"
 #include "paths.h"
 #include "geometry.h"
+#include "rtree.h"
 #include <vector>
 #include <random>
 #include <algorithm>
@@ -88,7 +89,6 @@ void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rend
 			space.rot * 180 / M_PI	
 		);
 	}
-	rendr.Present();
 }
 
 void animationSystem (WorldSystems& world, GameState& state)
@@ -132,6 +132,30 @@ void outOfBounds (WorldSystems& world, GameState& state)
 		if(p.y >= 500 || p.y <= -60 || p.x <= -20 || p.x >= 700) 
 		world.killEntity(i);
 	}
+}
+
+void spaceSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr, QTree& space)
+{
+	auto sig 	= world.createSignature<Rectangle, pos>();
+	auto ents = world.signatureScan(sig);
+	space.eclear();
+	space.qclear();
+
+	for(const auto i : ents)
+	{
+		auto& p = world.getComponents<pos>()->get(i);
+		auto& r = world.getComponents<Rectangle>()->get(i);
+		Rectangle translated{Point{p.x, p.y}, r.w, r.h};
+		space.insert({translated, i});
+	}
+	space.balance();
+
+	for(const auto& r : space.rectangles())
+	{
+		rendr.SetDrawColor(255,0,0,255);
+		rendr.DrawRect( SDL2pp::Rect( (r.corner.x * 2), (r.corner.y) * 2, (r.corner.x + r.w) * 2, (r.corner.y + r.h) * 2));
+	}
+
 }
 
 void pCallbackSystem (WorldSystems& world, GameState& state)
