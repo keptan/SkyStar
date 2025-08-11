@@ -46,6 +46,7 @@ Entity bolt (WorldSystems& world, GameState& state)
 	for(const auto i : ents)
 	{
 		auto space = world.getComponents<pos>()->get(i);
+		space.y -= 15;
 
 		world.addComponent<renderTag>(e, {});
 		world.addComponent<animationTag>(e, {});
