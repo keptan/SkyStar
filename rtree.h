@@ -162,7 +162,7 @@ Rectangle{{xBoundray, yBoundray}, {nodes[n].box.corner.x + nodes[n].box.w, nodes
 
 	void rbalance (const int n)
 	{
-		if(nodes[n].elements.size() < 100 || (nodes[n].box.h < 5) || (nodes[n].box.w < 5)) return;
+		if(nodes[n].elements.size() < 1 || (nodes[n].box.h < 5) || (nodes[n].box.w < 5)) return;
 		balance(n);
 
 		for(int i = 0; i < 4; i++)
@@ -200,9 +200,25 @@ Rectangle{{xBoundray, yBoundray}, {nodes[n].box.corner.x + nodes[n].box.w, nodes
 		nodes[root] = QNode{r};
 	}
 
+	void rinsert (QElement e, int n)
+	{
+		for(const auto c : nodes[n].children)
+		{
+			if(c != -1)
+			{
+				if( nodes[c].box.contains( e.box))
+				{
+					rinsert(e, c);
+					return;
+				}
+			}
+		}
+		nodes[n].elements.push_back(e);
+	}
+
 	void insert (QElement e)
 	{
-		nodes[root].insert(e);
+		rinsert(e, root);
 	}
 
 	std::vector< Entity> query ( Rectangle& b)
