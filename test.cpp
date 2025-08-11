@@ -86,6 +86,7 @@ auto main (void) -> int
 		outOfBounds(world, state);
 		pCallbackSystem(world, state);
 		spaceSystem(world, state, window.rendr, space);
+		collision(world, state, space);
 
 		window.rendr.Present();
 
@@ -93,7 +94,7 @@ auto main (void) -> int
 		const auto endFrame = SDL_GetTicks();
 		const auto frameCost = endFrame - tick;
 		averageFrameTime+= frameCost;
-		SDL_Delay(frameCost >= 16 ? 0 : 16 - frameCost);
+		SDL_Delay(frameCost >= 7 ? 0 : 7 - frameCost);
 	}
 	std::cout << averageFrameTime / state.frameCount << '\n';
 }
