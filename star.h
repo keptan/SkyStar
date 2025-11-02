@@ -103,7 +103,7 @@ public:
 		recycled.push(id);
 	}
 
-	//either set, or retieve a calue from our array 
+	//either set, or retrieve a value from our array
 	T& touch (const E id)
 	{
 		return res[id];
@@ -136,7 +136,7 @@ public:
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
-		using value_type	= T;
+		using value_type		= T;
 		using pointer           = T*;
 		using reference         = T&;
 
@@ -144,7 +144,7 @@ public:
 		size_t pos;
 
 		public:
-		Iterator (Packed& r, const size_t p = 0) : res(r), pos(p)
+		explicit Iterator (Packed& r, const size_t p = 0) : res(r), pos(p)
 		{}
 		reference operator*() {return res.res[pos];}
 		Iterator operator++(int)
@@ -180,7 +180,7 @@ public:
 
 //packed erray of entity signatures
 //an entity signatures determines which properties it holds i guess hehe
-//we're actually doing a lot better than the reference iplementation that i stole
+//we're actually doing a lot better than the reference implementation that i stole
 //the guy seems to know a lot about ECS programming but is also retarded because he's bad at koding 
 //even though he's a professor
 using EMan = Packed<Signature, Entity>; 
@@ -292,7 +292,7 @@ public:
 
 		public:
 
-		Iterator (SparseArray& r, const size_t p = 0) : res(r)
+		explicit Iterator (SparseArray& r, const size_t p = 0) : res(r)
 		{
 			 pos = res.next_valid(p);
 		};
