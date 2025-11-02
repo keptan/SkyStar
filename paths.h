@@ -1,12 +1,13 @@
+#pragma once
 using namespace std;
 
 // the length variable is how many total ms it should take to complete the
-//   nodes, i couldn't think of a better name for it.
+//   nodes, I couldn't think of a better name for it.
 
-pos linearPath ( int ms_passed, int length, vector<pos> nodes )
+inline pos linearPath ( int ms_passed, int length, const vector<pos> &nodes )
 {
 	if ( ms_passed >= length ) return nodes.back();
-	float segment_length = (float)length / ( nodes.size()-1 );
+	float segment_length = static_cast<float>(length) / ( nodes.size()-1 );
 	int segment = 0;
 	while ( (1 + segment) * segment_length < ms_passed ) segment++;
 	ms_passed -= segment * segment_length;
@@ -17,7 +18,7 @@ pos linearPath ( int ms_passed, int length, vector<pos> nodes )
 	return out;
 }
 
-int binomial(int n, int k) {
+inline int binomial(int n, int k) {
 	if(k<0 or k>n)return 0;
 	if(k==0 or k==n)return 1;
 	if(k>n-k)k=n-k;
@@ -26,7 +27,7 @@ int binomial(int n, int k) {
 	return c;
 }
 
-pos bezierPath( int ms_passed, int length, vector<pos> nodes )
+inline pos bezierPath(const int ms_passed, const int length, const vector<pos> &nodes )
 {
 	if ( ms_passed >= length ) return nodes.back();
 	pos out;
@@ -39,9 +40,9 @@ pos bezierPath( int ms_passed, int length, vector<pos> nodes )
 	return out;
 }
 
-vector<pos> generateRandomNodes( int num_of_nodes = 6,
-			       int min_x = 0, int max_x = 640,
-			       int min_y = 0, int max_y = 480 ) 
+inline vector<pos> generateRandomNodes( int num_of_nodes = 6,
+                                        int min_x = 0, int max_x = 640,
+                                        int min_y = 0, int max_y = 480 )
 {
 	vector<pos> nodes;
 	pos p;

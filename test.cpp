@@ -1,19 +1,11 @@
-#include <iostream>
-#include <vector>
-#include <unordered_set>
-#include <string>
-#include <experimental/random>
-#include <map>
-#include <random>
-#include <chrono>
-#include <type_traits>
-#include <SDL2/SDL_timer.h>
-#include "components.h"
 #include "systems.h"
 #include "entities.h"
 #include "rtree.h"
-#include "SDL2pp/SDL2pp/Texture.hh"
 
+void lalaGameSetup (WorldSystems& world, GameState& state, QTree&, Graphics&)
+{
+	player(world);
+}
 
 
 auto main (void) -> int
@@ -30,6 +22,9 @@ auto main (void) -> int
 	game.addSystem(velocitySystem);
 	game.addSystem(spaceSystem);
 	game.addSystem(collision);
+
+	game.addSetup(lalaGameSetup);
+
 	game.setup();
 
 	while (true)

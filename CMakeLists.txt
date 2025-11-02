@@ -27,7 +27,10 @@ ADD_DEFINITIONS(-DDATA_PATH="${PROJECT_SOURCE_DIR}/data")
 INCLUDE_DIRECTORIES(${SDL2PP_INCLUDE_DIRS})
 
 
-ADD_EXECUTABLE(test test.cpp)
+ADD_EXECUTABLE(test test.cpp
+        MacroEcon/macroEcon.cpp
+)
 # ADD_EXECUTABLE(tree rtree.cpp)
 TARGET_LINK_LIBRARIES(test ${SDL2PP_LIBRARIES})
 # TARGET_LINK_LIBRARIES(tree ${SDL2PP_LIBRARIES})
+add_executable(macroEcon MacroEcon/macroEcon.cpp)

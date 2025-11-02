@@ -60,6 +60,7 @@ struct GameState
 	unsigned int frameCount = 0;
 	unsigned long int time = 0;
 	unsigned int frameTime = 0;
+	unsigned int averageFrameTime = 0;
 };
 
 
@@ -169,14 +170,21 @@ struct SystemRegister
 	};
 
 	std::unordered_set< std::shared_ptr<SystemGraphNode>> systems;
+	std::unordered_set< std::shared_ptr<SystemGraphNode>> setup;
 	std::vector<SystemFunction> orderedSystems;
-
-	std::unordered_set< std::shared_ptr<SystemGraphNode>> before;
+	std::vector<SystemFunction> orderedSetup;
 
 	std::shared_ptr< SystemGraphNode> add (SystemFunction f)
 	{
 		auto p = std::make_shared<SystemGraphNode>(f);
 		systems.insert(p);
+		return p;
+	}
+
+	std::shared_ptr< SystemGraphNode> addSetup (SystemFunction f)
+	{
+		auto p = std::make_shared<SystemGraphNode>(f);
+		setup.insert(p);
 		return p;
 	}
 
@@ -223,6 +231,7 @@ struct SystemRegister
 	void sortSystems (void)
 	{
 		orderedSystems = topoSort(systems);
+		orderedSetup = topoSort(setup);
 	}
 
 };
@@ -250,9 +259,20 @@ public:
 		return systems.add(f);
 	}
 
+	std::shared_ptr< SystemRegister::SystemGraphNode> addSetup ( SystemRegister::SystemFunction f)
+	{
+		return systems.addSetup(f);
+	}
+
 	int setup (void)
 	{
 		systems.sortSystems();
+
+		for (const auto s : systems.orderedSetup)
+		{
+			s(world, state, space, graphics);
+		}
+
 		return 0;
 	}
 
@@ -274,6 +294,11 @@ public:
 
 		std::print( "{0}\n", world.entities.size());
 
+		state.frameCount++;
+		const auto endFrame = SDL_GetTicks();
+		const auto frameCost = endFrame - tick;
+		state.averageFrameTime += frameCost;
+		SDL_Delay(frameCost >= 7 ? 0 : 7 - frameCost);
 		return 0;
 	}
 

@@ -6,7 +6,6 @@
 #include "geometry.h"
 #include "rtree.h"
 #include <vector>
-#include <random>
 
 #include "entities.h"
 
@@ -25,7 +24,7 @@ void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr,
 }
 */
 
-void playerMove (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void playerMove (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<playerTag, pos, velocity>();
 	auto ents = world.signatureScan(sig);
@@ -42,12 +41,12 @@ void playerMove (WorldSystems& world, GameState& state, QTree& space, Graphics& 
 		else dir = dir.normalize(250);
 
 
-		auto& space = world.getComponents<velocity>()->get(i);
-		space = dir;
+		auto& lspace = world.getComponents<velocity>()->get(i);
+		lspace = dir;
 	}
 }
 
-void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&)
+inline void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&)
 {
 	auto sig = world.createSignature<path>();
 
@@ -73,7 +72,7 @@ void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&)
 	}
 }
 
-void renderSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void renderSystem (WorldSystems& world, GameState& state, QTree&, Graphics& graphics)
 {
 	auto sig = world.createSignature<pos, sprite, renderTag>();
 	auto ents = world.signatureScan(sig);
@@ -93,7 +92,7 @@ void renderSystem (WorldSystems& world, GameState& state, QTree& space, Graphics
 	}
 }
 
-void animationSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void animationSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<sprite, animationTag>();
 	auto ents = world.signatureScan(sig);
@@ -109,12 +108,12 @@ void animationSystem (WorldSystems& world, GameState& state, QTree& space, Graph
 	}
 }
 
-void spawnFireBolts (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void spawnFireBolts (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
-	auto e = fireball(world, state);
+	if (state.frameCount % 100) fireball(world, state);
 }
 
-void velocitySystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void velocitySystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig  = world.createSignature<velocity, pos>();
 	auto ents = world.signatureScan(sig);
@@ -128,7 +127,7 @@ void velocitySystem (WorldSystems& world, GameState& state, QTree& space, Graphi
 	}
 }
 
-void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig  = world.createSignature<outOfBoundsTag, pos>();
 	auto ents = world.signatureScan(sig);
@@ -141,7 +140,7 @@ void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics&
 	}
 }
 
-void collision (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void collision (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<Rectangle, pos, outOfBoundsTag>();
 	auto ents = world.signatureScan(sig);
@@ -160,7 +159,7 @@ void collision (WorldSystems& world, GameState& state, QTree& space, Graphics& g
 	for(const auto i : killList) world.killEntity(i);
 }
 
-void spaceSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void spaceSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig 	= world.createSignature<Rectangle, pos>();
 	auto ents = world.signatureScan(sig);

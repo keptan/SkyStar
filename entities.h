@@ -13,7 +13,8 @@ Entity player (WorldSystems& world)
 	world.addComponent<pos>(e, {xPos, yPos});
 	world.addComponent<playerTag>(e, {});
 	world.addComponent<velocity>(e, {});
-	world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
+	world.addComponent<Rectangle>(e, {{0,0}, 21, 37});
+	world.addComponent<sprite>(e, {"lala_flying.png", 37, 21, 7, 0});
 
 	return e;
 }
@@ -26,8 +27,8 @@ Entity fireball (WorldSystems& world, GameState& state)
 	world.addComponent<animationTag>(e, {});
 	world.addComponent<outOfBoundsTag>(e, {});
 	world.addComponent<pos>(e, {double (std::experimental::randint(0, 640)), -10});
-	world.addComponent<velocity>(e, {0, double( std::experimental::randint(90, 150))});
-	world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
+	world.addComponent<velocity>(e, {0, static_cast<double>(std::experimental::randint(90, 150))});
+	world.addComponent<Rectangle>(e, {{0,0}, 8, 16});
 	world.addComponent<sprite>(e, {"flame.png",16,8,1,0});
 
 
@@ -52,7 +53,7 @@ Entity bolt (WorldSystems& world, GameState& state)
 
 		world.addComponent<pos>(e, space);
 		world.addComponent<velocity>(e, {0, -250});
-		world.addComponent<Rectangle>(e, {{0,0}, 10, 10});
+		world.addComponent<Rectangle>(e, {{0,0}, 8, 16});
 		world.addComponent<sprite>(e, {"bolt.png",16,8,1,0});
 	}
 

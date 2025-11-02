@@ -1,6 +1,4 @@
 #pragma once 
-#include <math.h>
-#include <assert.h>
 #define _USE_MATH_DEFINES
 
 
@@ -29,7 +27,7 @@ class Point
 		: x(x), y(y)
 	{}
 
-	Point (pos p)
+	Point (const pos &p)
 		: x(p.x), y(p.y)
 	{}
 
@@ -61,7 +59,7 @@ class Velocity
 		: dx(x), dy(y)
 	{}
 
-	double magnitude (void)
+	double magnitude (void) const
 	{
 		//a^2 + b^2 = c^2
 		return std::sqrt( std::pow(dx, 2) +  std::pow(dy, 2));
@@ -75,7 +73,7 @@ class Velocity
 		return out;
 	}
 
-	Velocity normalize (double scale = 1)
+	Velocity normalize (double scale = 1) const
 	{
 		Velocity out;
 		const auto m = magnitude();
@@ -183,7 +181,7 @@ class Rectangle
 		return true;
 	}
 
-	bool collides (const Circle circle) const 
+	bool collides (const Circle &circle) const
 	{
 		double distX = std::abs(circle.center.x - corner.x - w / 2);
 		double distY = std::abs(circle.center.y - corner.y - h / 2);
