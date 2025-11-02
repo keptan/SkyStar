@@ -7,10 +7,11 @@
 #include "rtree.h"
 #include <vector>
 #include <random>
-#include <algorithm>
 
-//systems are functions that operate on a subset of entities 
+#include "entities.h"
 
+
+/* we should make this generically rendered in the renderSystem
 void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr, std::shared_ptr<SDL2pp::Texture> t)
 {
 	const int offset = state.frameCount % 64;
@@ -22,8 +23,9 @@ void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr,
 		}
 	}
 }
+*/
 
-void playerMove (WorldSystems& world, GameState& state)
+void playerMove (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<playerTag, pos, velocity>();
 	auto ents = world.signatureScan(sig);
@@ -37,7 +39,7 @@ void playerMove (WorldSystems& world, GameState& state)
 		if((state.input & InputMask::Down) == InputMask::Down) dir = dir + velocity{0, 50};	
 
 		if((state.input & InputMask::LShift) == InputMask::LShift) dir = dir.normalize(500);
-			else dir = dir.normalize(250);
+		else dir = dir.normalize(250);
 
 
 		auto& space = world.getComponents<velocity>()->get(i);
@@ -45,7 +47,7 @@ void playerMove (WorldSystems& world, GameState& state)
 	}
 }
 
-void pathSystem (WorldSystems& world, GameState& state)
+void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&)
 {
 	auto sig = world.createSignature<path>();
 
@@ -71,7 +73,7 @@ void pathSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr)
+void renderSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<pos, sprite, renderTag>();
 	auto ents = world.signatureScan(sig);
@@ -81,9 +83,9 @@ void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rend
 		auto& space = world.getComponents<pos>()->get(i);
 		auto& texture = world.getComponents<sprite>()->get(i);
 
-		rendr.Copy
+		graphics.rendr.Copy
 		(
-			*texture.sheet, 
+			*graphics.getTexture( texture.texture),
 			SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), 
 			SDL2pp::Rect(space.x * 2, space.y * 2, texture.width * 2, texture.height * 2),
 			space.rot * 180 / M_PI	
@@ -91,7 +93,7 @@ void renderSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rend
 	}
 }
 
-void animationSystem (WorldSystems& world, GameState& state)
+void animationSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<sprite, animationTag>();
 	auto ents = world.signatureScan(sig);
@@ -107,7 +109,12 @@ void animationSystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void velocitySystem (WorldSystems& world, GameState& state)
+void spawnFireBolts (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+{
+	auto e = fireball(world, state);
+}
+
+void velocitySystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig  = world.createSignature<velocity, pos>();
 	auto ents = world.signatureScan(sig);
@@ -121,7 +128,7 @@ void velocitySystem (WorldSystems& world, GameState& state)
 	}
 }
 
-void outOfBounds (WorldSystems& world, GameState& state)
+void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig  = world.createSignature<outOfBoundsTag, pos>();
 	auto ents = world.signatureScan(sig);
@@ -134,7 +141,7 @@ void outOfBounds (WorldSystems& world, GameState& state)
 	}
 }
 
-void collision (WorldSystems& world, GameState& state, QTree& space)
+void collision (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<Rectangle, pos, outOfBoundsTag>();
 	auto ents = world.signatureScan(sig);
@@ -153,45 +160,28 @@ void collision (WorldSystems& world, GameState& state, QTree& space)
 	for(const auto i : killList) world.killEntity(i);
 }
 
-void spaceSystem (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr, QTree& space)
+void spaceSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig 	= world.createSignature<Rectangle, pos>();
 	auto ents = world.signatureScan(sig);
 	space.qclear();
 
-	rendr.SetDrawColor(0,0,255,255);
+	graphics.rendr.SetDrawColor(0,0,255,255);
 
 	for(const auto i : ents)
 	{
 		auto& p = world.getComponents<pos>()->get(i);
 		auto& r = world.getComponents<Rectangle>()->get(i);
 		Rectangle translated{Point{p.x, p.y}, r.w, r.h};
-		rendr.DrawRect( SDL2pp::Rect( (translated.corner.x * 2), (translated.corner.y) * 2,  translated.w *2 , translated.h * 2));
+		graphics.rendr.DrawRect( SDL2pp::Rect( (translated.corner.x * 2), (translated.corner.y) * 2,  translated.w *2 , translated.h * 2));
 		space.insert({translated, i});
 	}
 	space.balance();
 
-	rendr.SetDrawColor(255,0,0,255);
+	graphics.rendr.SetDrawColor(255,0,0,255);
 	for(const auto& r : space.rectangles())
 	{
-		rendr.DrawRect( SDL2pp::Rect( (r.corner.x * 2), (r.corner.y) * 2, r.w * 2 ,  r.h * 2));
-	}
-}
-
-void pCallbackSystem (WorldSystems& world, GameState& state)
-{
-	auto sig  = world.createSignature<pCallback>();
-	auto ents = world.signatureScan(sig);
-
-	for(const auto i : ents)
-	{
-		auto& p = world.getComponents<pCallback>()->get(i);
-		if(state.time >= p.time) 
-		{
-			p.time = state.time + p.period;
-			p.f_p(i, world, state); 
-
-		}
+		graphics.rendr.DrawRect( SDL2pp::Rect( (r.corner.x * 2), (r.corner.y) * 2, r.w * 2 ,  r.h * 2));
 	}
 }
 
