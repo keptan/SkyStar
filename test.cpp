@@ -4,60 +4,40 @@
 #include <string>
 #include <experimental/random>
 #include <map>
-
 #include <random>
 #include <chrono>
 #include <type_traits>
+#include <SDL2/SDL_timer.h>
 #include "components.h"
 #include "systems.h"
 #include "entities.h"
 #include "rtree.h"
+#include "SDL2pp/SDL2pp/Texture.hh"
 
-template <typename F>
-unsigned int time (const F f)
+
+
+auto main (void) -> int
 {
-	auto start = std::chrono::high_resolution_clock::now();
-	f();
-	auto stop = std::chrono::high_resolution_clock::now();
-	auto duration = duration_cast<std::chrono::milliseconds>(stop - start);
-	return duration.count();
-};
+	Game game;
+	//game.sceneBuild()
+	game.addSystem(sweeper);
+	game.addSystem(playerMove);
+	game.addSystem(pathSystem);
+	game.addSystem(animationSystem);
+	game.addSystem(outOfBounds);
+	game.addSystem(renderSystem);
+	game.addSystem(spawnFireBolts);
+	game.addSystem(velocitySystem);
+	game.addSystem(spaceSystem);
+	game.addSystem(collision);
+	game.setup();
 
-auto main (void) -> int 
-{
-
-	WorldSystems world;
-	QTree space{ Rectangle{{0,0}, 640, 480}};
-	GameWindow window;
-	GameState state;
-	Graphics graphics;
-	state.time = SDL_GetTicks();
-
-	auto lala	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/lala_flying.png");
-	auto fire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/flame.png");
-	auto greenFire	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/greenFlame.png");
-	auto wallpaper = std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/wall.png");
-	auto lBolt  	= std::make_shared<SDL2pp::Texture>(window.rendr, DATA_PATH "/bolt.png");
-
-	const auto target  = player(world);
-	world.addComponent<sprite>(target, {lala, 37, 21, 7, 0});
-
-
-	auto e = fireball(world, state);
-	world.addComponent<sprite>(e, {fire, 16, 8, 1, 0});
-		
-
-	unsigned int averageFrameTime = 0;
-
-	for(int i = 0;; i++)
+	while (true)
 	{
-		window.rendr.SetDrawColor(0,0,0,255);
-		window.rendr.Clear();
-		const auto tick = SDL_GetTicks();
-		state.frameTime = tick - state.time;
-		state.time = tick;
-
-		if ((state.input & InputMask::Quit) == InputMask::Quit) break;
+		int code = game.gameLoop();
+		if (code!= 0) break;
+	}
+}/*
 		if ((state.input & InputMask::PKey) == InputMask::PKey)
 		{
 			for(int i = 0; i < 25; i++)
@@ -75,7 +55,9 @@ auto main (void) -> int
 				world.addComponent<sprite>(e, {lBolt, 16, 8, 1, 0});
 			}
 		}
+		*/
 
+		/*
 		sweeper(world, state);
 		playerMove(world, state);
 		pathSystem(world, state);
@@ -84,7 +66,6 @@ auto main (void) -> int
 		renderSystem(world, state, window.rendr);
 		velocitySystem(world, state);
 		outOfBounds(world, state);
-		pCallbackSystem(world, state);
 		spaceSystem(world, state, window.rendr, space);
 		collision(world, state, space);
 
@@ -95,6 +76,6 @@ auto main (void) -> int
 		const auto frameCost = endFrame - tick;
 		averageFrameTime+= frameCost;
 		SDL_Delay(frameCost >= 7 ? 0 : 7 - frameCost);
-	}
-	std::cout << averageFrameTime / state.frameCount << '\n';
-}
+		*/
+
+	//std::cout << averageFrameTime / state.frameCount << '\n';
