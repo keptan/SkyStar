@@ -1,8 +1,17 @@
 #pragma once
+#include <any>
+#include <memory>
+
 #include "star.h"
 #include <SDL2pp/Renderer.hh>
 #include <SDL2pp/SDL2pp.hh>
 #include <filesystem>
+#include <list>
+#include <print>
+
+#include "rtree.h"
+
+struct Graphics;
 
 enum class InputMask
 {
@@ -54,7 +63,7 @@ struct GameState
 };
 
 
-void sweeper (WorldSystems& world, GameState& state)
+void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	SDL_Event event;
 	while(SDL_PollEvent(&event))
@@ -93,29 +102,183 @@ void sweeper (WorldSystems& world, GameState& state)
 
 struct Graphics
 {
-	std::unordered_map< std::string, std::shared_ptr<SDL2pp::Texture>> library;
-	Graphics (void) {
-	for(const auto& dir : std::filesystem::recursive_directory_iterator(DATA_PATH)) std::cout << dir << std::endl;}
-
-};
-
-struct GameWindow
-{
-	SDL2pp::SDL   	sdl;
+	SDL2pp::SDL   		sdl;
 	SDL2pp::SDLTTF 	sdl_ttf;
-	SDL2pp::Window	window;
-	SDL2pp::Renderer rendr;
+	SDL2pp::Window		window;
+	SDL2pp::Renderer	rendr;
 
+	std::unordered_map<std::string, std::shared_ptr<SDL2pp::Texture>> textures;
 
-	GameWindow (void)
+	Graphics (int width, int height)
 		: sdl(SDL_INIT_VIDEO | SDL_INIT_AUDIO),
 		  window("Demo..", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-			 1280, 960,
+			 width, height,
 			 SDL_WINDOW_RESIZABLE),
 		  rendr(window, -1, SDL_RENDERER_ACCELERATED)
-		{}
+	{
+		for (const auto& entry : std::filesystem::directory_iterator(DATA_PATH))
+		{
+			if (entry.is_regular_file())
+			{
+				std::cerr << "registering texture: " << entry.path().filename() << "\n";
+				textures[entry.path().filename()] = std::make_shared< SDL2pp::Texture>(rendr, entry.path());
+			}
+		}
+	}
+
+	std::shared_ptr<SDL2pp::Texture> getTexture (const std::string& name)
+	{
+		assert( textures.contains(name));
+		return textures[name];
+	}
 };
 
+//stuff that test.cpp has
+//register systems
+//hold world and stuff so we can spawn entities and stuff
+//and we need a scripting and scene structure to load levels in
+//buuuhhh
+//systems are functions that operate on a subset of entities
+
+struct SystemRegister
+{
+	using SystemFunction = void(*)(WorldSystems& world, GameState& state, QTree& space, Graphics& graphics);
+
+	struct SystemGraphNode
+	{
+		SystemFunction system;
+		std::unordered_set< std::shared_ptr< SystemGraphNode>> inSet;
+		std::unordered_set< std::shared_ptr< SystemGraphNode>> outSet;
 
 
+		explicit SystemGraphNode (const SystemFunction f)
+			: system(f)
+		{}
 
+		SystemGraphNode& after (const std::shared_ptr< SystemGraphNode>& f)
+		{
+			inSet.insert(f);
+			return *this;
+		}
+
+		SystemGraphNode& before (const std::shared_ptr< SystemGraphNode>& f)
+		{
+			outSet.insert(f);
+			return *this;
+		}
+	};
+
+	std::unordered_set< std::shared_ptr<SystemGraphNode>> systems;
+	std::vector<SystemFunction> orderedSystems;
+
+	std::unordered_set< std::shared_ptr<SystemGraphNode>> before;
+
+	std::shared_ptr< SystemGraphNode> add (SystemFunction f)
+	{
+		auto p = std::make_shared<SystemGraphNode>(f);
+		systems.insert(p);
+		return p;
+	}
+
+	//we need to do a topographic sort on our nodes so they all execute in the order they want
+	//this is where we can invalidate peoples before and after specifications too, it would be cool
+	//if we could do it on compiler time though
+	//using khan's algorithm is simple, we will get an infinite loop here derp
+	std::vector<SystemFunction> topoSort( std::unordered_set< std::shared_ptr<SystemGraphNode>>& set)
+	{
+		std::vector<SystemFunction> res;
+		std::unordered_set< std::shared_ptr<SystemGraphNode>> inLess;
+
+		//pre-process 1
+		for (auto &node : set)
+		{
+			for (auto &n : node->outSet)
+			{
+				n->inSet.insert(node);
+			}
+		}
+
+		//pre-process 2
+		for (auto& node : set) if (node->inSet.empty()) inLess.insert(node);
+
+		//pre-process 3
+		while (!inLess.empty())
+		{
+			auto node = *inLess.begin();
+			inLess.erase(node);
+			set.erase(node);
+			res.push_back(node->system);
+
+			for (auto& n : node->outSet)
+			{
+				n->inSet.erase(node);
+				if (n->inSet.empty()) inLess.insert(n);
+			}
+		}
+
+		assert( set.empty() && "graph is cyclical");
+		return res;
+	}
+
+	void sortSystems (void)
+	{
+		orderedSystems = topoSort(systems);
+	}
+
+};
+
+class Game
+{
+	int sceneHeight, sceneWidth, windowScale;
+
+
+	WorldSystems	world;
+	Graphics			graphics;
+	GameState		state;
+	SystemRegister systems;
+	QTree				space;
+
+public:
+	Game (void)
+		: sceneHeight(480), sceneWidth(640), windowScale(2),
+		graphics(sceneWidth * windowScale, sceneHeight * windowScale),
+		space( Rectangle( {0, 0}, sceneWidth, sceneHeight))
+	{}
+
+	std::shared_ptr< SystemRegister::SystemGraphNode> addSystem ( SystemRegister::SystemFunction f)
+	{
+		return systems.add(f);
+	}
+
+	int setup (void)
+	{
+		systems.sortSystems();
+		return 0;
+	}
+
+	int gameLoop (void)
+	{
+		graphics.rendr.SetDrawColor(20, 0, 0, 255);
+		graphics.rendr.Clear();
+		const auto tick = SDL_GetTicks();
+		state.frameTime = tick - state.time;
+		state.time = tick;
+
+		if ((state.input & InputMask::Quit) == InputMask::Quit) return 1;
+
+		for (const auto s : systems.orderedSystems)
+		{
+			s(world, state, space, graphics);
+		}
+		graphics.rendr.Present();
+
+		std::print( "{0}\n", world.entities.size());
+
+		return 0;
+	}
+
+	//auto register = game.registerSystem(blah)
+	//auto register = game.regiserSystem(blah).before(blah,blah).after(blah, blah);
+
+
+};
