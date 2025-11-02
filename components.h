@@ -71,7 +71,7 @@ struct path
 struct sprite 
 {
 	using StorageStrategy = SparseArray<sprite>;
-	std::shared_ptr<SDL2pp::Texture> sheet;
+	std::string texture;
 	int height = 32;
 	int width  = 32;
 	int frames = 0; //this should be moved to a different component
@@ -100,21 +100,9 @@ struct sdlRect
 	Rectangle r;
 };
 
-struct pCallback
-{
-	void (*f_p)(Entity e, WorldSystems& world, GameState& state);
-	long int period;
-	long int time;
-
-	pCallback (void)
-		: f_p(nullptr), period(0), time(0)
-	{}
-
-	pCallback (auto f, long int p = 0, long int t = 0)
-		: f_p(f), period(p), time(t + period)
-	{}
-	
-};
-
 struct gravityTag{};
+struct event
+{
+	long int time;
+};
 
