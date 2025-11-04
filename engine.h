@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <list>
 #include <print>
+#include <unordered_set>
 
 #include "rtree.h"
 
@@ -158,12 +159,14 @@ struct SystemRegister
 
 		SystemGraphNode& after (const std::shared_ptr< SystemGraphNode>& f)
 		{
+			//assert( !outSet.contains(f) && "can't be before and after a node");
 			inSet.insert(f);
 			return *this;
 		}
 
 		SystemGraphNode& before (const std::shared_ptr< SystemGraphNode>& f)
 		{
+			//assert( !inSet.contains(f) && "can't be before and after a node");
 			outSet.insert(f);
 			return *this;
 		}
@@ -198,18 +201,26 @@ struct SystemRegister
 		std::unordered_set< std::shared_ptr<SystemGraphNode>> inLess;
 
 		//pre-process 1
+		//turn our graph into a doublly linked (everyone knows their inputs and outputs)
 		for (auto &node : set)
 		{
 			for (auto &n : node->outSet)
 			{
 				n->inSet.insert(node);
 			}
+			for (auto &n : node->inSet)
+			{
+				n->outSet.insert(node);
+			}
 		}
 
 		//pre-process 2
+		//take all the heads add them to the inless set
 		for (auto& node : set) if (node->inSet.empty()) inLess.insert(node);
 
 		//pre-process 3
+		//remove all the inless nodes as dependencies from the remianing nodes
+		//if the remaining node is now a head, remove it too
 		while (!inLess.empty())
 		{
 			auto node = *inLess.begin();
