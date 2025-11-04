@@ -2,3 +2,6 @@
 	path = SDL2pp
 	url = https://github.com/libSDL2pp/libSDL2pp
 	ignore = dirty
+[submodule "imgui"]
+	path = imgui
+	url = https://github.com/ocornut/imgui

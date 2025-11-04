@@ -26,6 +26,7 @@
 					SDL2_image
 					SDL2.dev
 					SDL2_mixer
+					xorg.libX11
             ];
 
 	    shellHook = '' echo Welcome back commander :3 '';
