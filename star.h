@@ -7,12 +7,9 @@
 #include <array>
 #include <optional>
 #include <assert.h>
-#include <tuple>
-#include <variant>
 #include <iostream>
 #include <unordered_map>
 #include <memory>
-#include <type_traits>
 #include <vector>
 
 //a simple entity component system!
