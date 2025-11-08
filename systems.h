@@ -124,6 +124,7 @@ inline void velocitySystem (WorldSystems& world, GameState& state, QTree& space,
 		auto& v = world.getComponents<velocity>()->get(i);
 		p.x += v.dx * (state.frameTime / 1000.0);
 		p.y += v.dy * (state.frameTime / 1000.0);
+		p.rot += v.dr * (state.frameTime / 1000.0);
 	}
 }
 
