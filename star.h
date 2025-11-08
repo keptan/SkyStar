@@ -37,7 +37,7 @@ using ComponentType = std::uint64_t;
 
 //we can only have 32 components in the game! we can easily upgrade this to 64 
 const ComponentType MAX_COMPONENTS = 64;
-const Entity MAX_ENTITIES = 24000;
+const Entity MAX_ENTITIES = 66000;
 
 //each entity will have a bitset saying which components they have
 //this is how systems will find out quickly which entities they are compatible with

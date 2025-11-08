@@ -10,6 +10,7 @@
 #include <print>
 #include <unordered_set>
 
+#include "imgui_impl_sdl2.h"
 #include "rtree.h"
 
 struct Graphics;
@@ -26,6 +27,7 @@ enum class InputMask
 	LShift = 1 << 7,
 	PKey   = 1 << 8,
 	Space  = 1 << 9,
+	F1		 = 1 << 10
 };
 
 inline InputMask operator | (InputMask lhs, InputMask rhs)
@@ -70,6 +72,8 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 	SDL_Event event;
 	while(SDL_PollEvent(&event))
 	{
+		ImGui_ImplSDL2_ProcessEvent(&event);
+
 		 if (event.type == SDL_KEYDOWN) 
 		 {
 				switch (event.key.keysym.sym) 
@@ -82,6 +86,9 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 					case SDLK_LSHIFT: state.input |= InputMask::LShift; break;
 					case SDLK_p: state.input |= InputMask::PKey; break;
 					case SDLK_SPACE: state.input |= InputMask::Space; break;
+					case SDLK_F1: state.input |= InputMask::F1; break;
+					default:
+						break;
 				}
 
 		} 
@@ -97,6 +104,9 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 					case SDLK_LSHIFT: state.input ^= InputMask::LShift; break;
 					case SDLK_p: state.input ^= InputMask::PKey; break;
 					case SDLK_SPACE: state.input ^= InputMask::Space; break;
+					case SDLK_F1: state.input ^= InputMask::F1; break;
+					default:
+						break;
 				}
 		}
 	}
@@ -289,7 +299,7 @@ public:
 
 	int gameLoop (void)
 	{
-		graphics.rendr.SetDrawColor(20, 0, 0, 255);
+		graphics.rendr.SetDrawColor(20, 0, state.frameCount % 255, 255);
 		graphics.rendr.Clear();
 		const auto tick = SDL_GetTicks();
 		state.frameTime = tick - state.time;
@@ -303,7 +313,7 @@ public:
 		}
 		graphics.rendr.Present();
 
-		std::print( "{0}\n", world.entities.size());
+		if (!(state.frameCount % 100)) std::print( "{0}\n", world.entities.size());
 
 		state.frameCount++;
 		const auto endFrame = SDL_GetTicks();

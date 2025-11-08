@@ -72,7 +72,8 @@ target_include_directories(imgui PUBLIC
 # also automatically link to SDL2pp.
 target_link_libraries(imgui PUBLIC ${SDL2PP_LIBRARIES})
 
-ADD_EXECUTABLE(test test.cpp)
+ADD_EXECUTABLE(test test.cpp
+        debugGraphics.h)
 TARGET_LINK_LIBRARIES(test PUBLIC imgui)
 # TARGET_LINK_LIBRARIES(tree ${SDL2PP_LIBRARIES})
 #add_executable(macroEcon MacroEcon/macroEcon.cpp)
