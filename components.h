@@ -16,6 +16,7 @@ struct velocity
 {
 	double dx = 0;
 	double dy = 0;
+	double dr = 0;
 
 	double magnitude (void) const
 	{
@@ -47,14 +48,15 @@ struct velocity
 	{
 		const double x = 0.0;
 		const double y = 0.0;
+		const double r = 0.0;
 	};
 
-	 velocity (const args a)
-		: dx(a.x), dy(a.y)
+	 velocity (const args &a)
+		: dx(a.x), dy(a.y), dr(a.r)
 	{}
 
-	velocity (const double x = 0.0, const double y = 0.0)
-		: dx(x), dy(y)
+	velocity (const double x = 0.0, const double y = 0.0, const double r = 0.0)
+		: dx(x), dy(y), dr(r)
 	{}
 };
 
