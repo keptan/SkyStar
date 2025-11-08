@@ -26,8 +26,8 @@ Entity fireball (WorldSystems& world, GameState& state)
 	world.addComponent<renderTag>(e, {});
 	world.addComponent<animationTag>(e, {});
 	world.addComponent<outOfBoundsTag>(e, {});
-	world.addComponent<pos>(e, {double (std::experimental::randint(0, 640)), -10});
-	world.addComponent<velocity>(e, {0, static_cast<double>(std::experimental::randint(90, 150))});
+	world.addComponent<pos>(e, {static_cast<double>(std::experimental::randint(0, 640)), -10});
+	world.addComponent<velocity>(e, {0, static_cast<double>(std::experimental::randint(90, 150)), 3});
 	world.addComponent<Rectangle>(e, {{0,0}, 8, 16});
 	world.addComponent<sprite>(e, {"flame.png",16,8,1,0});
 
