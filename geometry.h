@@ -50,6 +50,7 @@ class Point
 
 };
 
+/*
 class Velocity 
 {
 	public:
@@ -85,7 +86,7 @@ class Velocity
 		return out;
 	}
 };
-
+*/
 class Circle
 {
 	public:
