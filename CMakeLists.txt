@@ -75,5 +75,10 @@ target_link_libraries(imgui PUBLIC ${SDL2PP_LIBRARIES})
 ADD_EXECUTABLE(test test.cpp
         debugGraphics.h)
 TARGET_LINK_LIBRARIES(test PUBLIC imgui)
+
+ADD_EXECUTABLE(hex hex.cpp
+    debugGraphics.h)
+TARGET_LINK_LIBRARIES(hex PUBLIC imgui)
 # TARGET_LINK_LIBRARIES(tree ${SDL2PP_LIBRARIES})
 #add_executable(macroEcon MacroEcon/macroEcon.cpp)
+ADD_EXECUTABLE(dtest Dtest.cpp)
