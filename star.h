@@ -30,19 +30,6 @@
 //also its cool and its the in way to make videogames
 
 //the type for Entity and component is just a number, entity 1, entity 2.... etc
-
-//ok we've decided that actually entities need to carry state on child relations so we'll do that instead
-using Entity = std::uint32_t;
-using ComponentType = std::uint64_t;
-
-//we can only have 32 components in the game! we can easily upgrade this to 64 
-const ComponentType MAX_COMPONENTS = 64;
-const Entity MAX_ENTITIES = 66000;
-
-//each entity will have a bitset saying which components they have
-//this is how systems will find out quickly which entities they are compatible with
-using Signature = std::bitset<MAX_COMPONENTS>;
-
 //this is a packed array that we use as the global store of which entities are associated with which components
 //well actually all en entity is is just a collection of components right?
 //yes
@@ -67,7 +54,7 @@ public:
 		count = 0;
 	}
 
-	//we always try and fill a previously occupied spot in the array 
+	//we always try and fill a previously occupied spot in the array
 	//such that the array always remains 'packed', instead of sparse
 	//all this does is return an empty spot on the array for us to use
 	//this system reads like it could be adapted to a variable amount of entities instead of static
@@ -129,7 +116,7 @@ public:
 	}
 
 	//here we create an entire forward iterator for using this container
-	class Iterator 
+	class Iterator
 	{
 		using iterator_category = std::forward_iterator_tag;
 		using difference_type   = std::ptrdiff_t;
@@ -175,157 +162,288 @@ public:
 	Iterator end()	 {return Iterator(*this, count);}
 };
 
-//packed erray of entity signatures
-//an entity signatures determines which properties it holds i guess hehe
-//we're actually doing a lot better than the reference implementation that i stole
-//the guy seems to know a lot about ECS programming but is also retarded because he's bad at koding 
-//even though he's a professor
-using EMan = Packed<Signature, Entity>; 
-
+using Entity = uint64_t;
 //trying to use a skiplist to skip holes when processing
 //if we can detect holes on insertion that is?
 //all we need to do is make sure we dont mis-hole, we can unhole and be fine!
 //
 //a sparse away is more efficient for iterating large components that most entities DO NOT use!
 
-template<typename T, size_t Max_T = MAX_ENTITIES>
-class SparseArray 
+inline uint32_t componentCounter = 0;
+inline std::unordered_map<uint32_t, size_t> componentSizes;
+
+template <typename T>
+static uint32_t componentId (void)
 {
-	//assuming that a cacheline is 64 bytes we can process these one cacheline at a time??
-	//im just throwing stuff at the wall here, idk the effecacy of this at all
-	//actually we rely on u_long being 64 bit down below, so no!
-	static constexpr size_t ChunkSize = Max_T / 64;
-	static constexpr size_t Max = Max_T + (ChunkSize - (Max_T % ChunkSize));
-	static constexpr size_t Chunks = Max / ChunkSize;
-	//we have an array of bitsets, each bit flag tells us if that position in the array is filled
-	//we have an array of optional arrays, each array either doesn't exist or contains some amount
-	//of components
-	//can we utilize inline storage here for things like sprites? who tf knows!
-	std::array<std::bitset<ChunkSize>, Chunks> flags;
-	std::array<std::optional<std::array<T, ChunkSize>>, Chunks> res;
+	static const uint32_t id = componentCounter++;
+	static const auto inserted = componentSizes.insert(std::make_pair(id, sizeof(T)));
+	return id;
+}
 
-	size_t next_valid (const size_t start = 0)
+struct Signature
+{
+	__uint128_t archetypeID = 0;
+
+	template <typename... Components>
+	Signature (void)
 	{
-		const size_t startChunk = start / ChunkSize;
-		size_t c = startChunk * ChunkSize;
-
-		//taking a position, here we skip through our metaarray
-		//until we approach a position where we can actually read data
-		for(int i = startChunk; i < Chunks; i++)
-		{
-			const auto& bitset = flags[i];
-			if(bitset.none())
-			{
-				c += ChunkSize;
-				continue;
-			}
-
-			const size_t end = std::countl_zero(bitset.to_ullong());
-			const size_t begin = std::countr_zero(bitset.to_ullong());
-			for(int q = begin; q < ChunkSize - end; q++)
-			{
-			
-				if(bitset[q] && c + q > start) 
-				{
-					return c + q;
-				}
-			}
-			c+= ChunkSize;
-		}
-		return c;
-
+		(setComponent<Components>(), ...);
 	}
 
-
-
-public:
-
-	SparseArray (void)
+	template <typename T>
+	inline void setComponent (void)
 	{
-		res.fill(std::nullopt);
-		flags.fill(0);
+		auto bit = componentId<T>();
+
+		archetypeID |= (static_cast<__uint8_t>(1) << bit);
 	}
 
-	T& insert (const size_t pos, const T in)
+	template<typename... Components>
+	void setComponents (void)
 	{
-		//find what chunk we're inserting into
-		//allocate that chunk if necessary (ruh roh!)
-	
-		const size_t chunk = pos / ChunkSize;
-		if(flags[chunk].none()) res[chunk] = std::array<T, ChunkSize>();
-
-		//make sure we set the bitflag to remind us this spot is filled 
-		flags[chunk].set(pos - ChunkSize * chunk);
-		res[chunk].value()[pos - ChunkSize * chunk] = in;
-		return res[chunk].value()[pos - ChunkSize * chunk];
+		(setComponent<Components>(), ...);
 	}
 
-	void remove (const size_t pos)
+	uint32_t countSet (void) const
 	{
-		const size_t chunk = pos / ChunkSize;
-		if(flags[chunk].none()) return; 
+		const uint64_t low = static_cast<uint64_t>(archetypeID);
+		const uint64_t high = static_cast<uint64_t>(archetypeID >> 64);
 
-		flags[chunk].reset(pos - ChunkSize * chunk);
+		return __builtin_popcountll(low) + __builtin_popcountll(high);
 	}
 
-	//no bounds checking!
-	T& get (const size_t pos)
-	{
-		const size_t chunk = pos / ChunkSize;
-		return res[chunk].value()[pos - ChunkSize * chunk];
-	}
-
-
-	class Iterator 
-	{
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type   = std::ptrdiff_t;
-		using value_type		= T;
-		using pointer           = T*;
-		using reference         = T&;
-
-		SparseArray& res;
-		size_t pos;
-
-		public:
-
-		explicit Iterator (SparseArray& r, const size_t p = 0) : res(r)
-		{
-			 pos = res.next_valid(p);
-		};
-		reference operator*() {return res.get(pos);}
-		Iterator operator++(int)
-		{
-			Iterator tmp = *this;
-			//can we optimize away the constant checks from next_valid() and only
-			//call it sometimes?
-			pos = res.next_valid(pos);
-			return tmp;
-		}
-
-		Iterator& operator++ (void)
-		{
-			pos = res.next_valid(pos);
-
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos == b.pos);
-		}
-
-		friend bool operator!= (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos != b.pos);
-
-		}
-	};
-
-	Iterator begin() {return Iterator(*this, 0);}
-	Iterator end()	 {return Iterator(*this, Max);}
 };
 
+template <typename... Components>
+Signature createSignature (void)
+{
+	Signature out;
+	(out.setComponent<Components>(), ...);
+	return out;
+}
+
+struct ComponentRecord
+{
+
+	struct alignas(32) EntityRecord
+	{
+		uint32_t generation;
+		uint32_t archetypeID;
+		uint32_t rowIndex;
+		uint32_t statusFlags;
+		Signature signature;
+	};
+
+	// 12 bits for the page size (4,096 entries per page)
+	static constexpr uint32_t pageShift = 12;
+	static constexpr uint32_t pageSize  = 1 << pageShift; // 4096
+	static constexpr uint32_t pageMask  = pageSize - 1;
+
+	//full index range
+	static constexpr uint32_t directorySize = 1 << (32 - pageShift);
+
+	EntityRecord** pageDirectory;
+
+	uint32_t nextFree = 0xFFFFFFFF; //head of free list
+	uint32_t highestPage = 0;
+
+	ComponentRecord (void)
+	{
+		pageDirectory = static_cast<EntityRecord**>(std::calloc(directorySize, sizeof(EntityRecord*)));
+
+		if (!pageDirectory) {
+			throw std::bad_alloc();
+		}
+	}
+
+	~ComponentRecord(void)
+	{
+		if (!pageDirectory) return;
+		for (uint32_t i = 0; i < directorySize; i++)
+		{
+			if (pageDirectory[i] != nullptr) free(pageDirectory[i]);
+		}
+		free(pageDirectory);
+	}
+
+	void allocatePage (void)
+	{
+		//book keep what page we are creating, and that we aren't making a zillion entities...
+		const auto pageId = highestPage++;
+		assert( pageId < directorySize && "Exceeded max entities");
+
+		//allocate 4099 records, each 32 bytes, alligned to 32 bytes
+		void* ptr = nullptr;
+		const size_t ps = pageSize * sizeof(EntityRecord);
+		if (posix_memalign(&ptr, 32, ps)) assert (false && "Memory allocation failed!");
+
+		const auto page = static_cast<EntityRecord*>(ptr);
+
+		const auto baseIndex = pageId << pageShift;
+
+		//setup free list
+		for (uint32_t i = 0; i < pageSize; ++i)
+		{
+			page[i].generation = 1;
+			page[i].signature.archetypeID = 0;
+
+			page[i].rowIndex = (i == pageSize -1) ? 0xFFFFFFFF : (baseIndex + i + 1);
+		}
+
+		pageDirectory[pageId] = page;
+		nextFree = baseIndex;
+	}
+
+	Entity createEntity (const Signature s)
+	{
+		//make a new page if necessary
+		if  (nextFree == 0xFFFFFFFF) allocatePage();
+
+		uint32_t index = nextFree;
+		EntityRecord& record = pageDirectory[index >> pageShift][index & pageMask];
+
+		nextFree = record.rowIndex;
+
+		record.signature = s;
+
+		return ( static_cast<uint64_t>(record.generation) << 32| index);
+	}
+
+	void destroyEntity (const Entity i)
+	{
+		const auto index = static_cast<uint32_t>(i);
+		auto& record = pageDirectory[index >> pageShift][index & pageMask];
+
+		record.generation++;
+		record.signature.archetypeID = 0;
+
+		record.rowIndex = nextFree;
+		nextFree = index;
+	}
+
+	EntityRecord* getRecordPointer (const Entity i) const
+	{
+		const auto index = static_cast<uint32_t>(i);
+		const auto generation = static_cast<uint32_t>(i >> 32);
+
+		const auto page = index >> pageShift;
+		const auto offset = index & pageMask;
+
+		if (!pageDirectory[page]) return nullptr;
+		if (pageDirectory[page][offset].generation != generation) return nullptr;
+
+		return &pageDirectory[page][offset];
+	}
+
+	//uint64_t createEntity (void)
+
+};
+
+struct World
+{
+
+	struct Archetype
+	{
+		struct Columns
+		{
+			Signature sig;
+			void ** res;
+
+			explicit Columns (Signature s)
+				: sig(s), res(nullptr)
+			{
+				res = new void* [s.countSet()];
+			}
+
+			~Columns(void)
+			{
+				if (res)
+				{
+					for (int i = 0;  i < sig.countSet(); i++) if (res[i]) free(res[i]);
+					free(res);
+				}
+			}
+		};
+
+		Signature sig;
+		uint32_t bitToColumn[128];
+		uint32_t count;
+		std::vector<Columns> pages;
+
+		explicit Archetype( const Signature& s)
+			:sig(s), count(0)
+		{
+			for (int i = 0; i < 128; i++) bitToColumn[i] = 0;
+		}
+
+		void allocatePage (void)
+		{
+
+			pages.emplace_back( sig);
+
+			const auto low  = static_cast<uint64_t>(sig.archetypeID);
+			const auto high = static_cast<uint64_t>(sig.archetypeID >> 64);
+
+			uint32_t current = 0;
+
+			iterateBitsHelper(low, 0, current, pages.back().res);
+			iterateBitsHelper(high, 64, current, pages.back().res);
+
+
+		}
+
+		void iterateBitsHelper (uint64_t val, uint64_t offset, uint32_t& column, void**& columns)
+		{
+			while (val > 0)
+			{
+				const uint32_t bit = __builtin_ctzll(val);
+				uint32_t global = bit + offset;
+				bitToColumn[global] = column;
+
+				posix_memalign(&columns[column], 32, 4096 * componentSizes[global]);
+				column++;
+
+				val &= ~(1ULL << bit);
+			}
+		}
+
+		uint32_t createRecord (void)
+		{
+			if (count / 4096 <= pages.size()) allocatePage();
+			return count++;
+		}
+
+		template <typename T>
+		T* getColumn (const uint32_t index)
+		{
+			const auto p = index / 4096;
+			const auto i = index - (p * 4096);
+
+			return static_cast<T*>(pages[p].res[i]);
+		}
+
+	};
+
+	ComponentRecord entities;
+	std::unordered_map<__uint128_t, Archetype> archetypes;
+
+	Entity createEntity (const Signature s)
+	{
+		if (!archetypes.contains(s.archetypeID)) archetypes.emplace(s.archetypeID, s);
+		const auto e = entities.createEntity(s);
+		const auto i = archetypes.at(s.archetypeID).createRecord();
+		entities.getRecordPointer(e)->rowIndex = i;
+
+
+
+		return e;
+	}
+
+};
+
+
+
+/*
 //the seq array is a more simpler case where its a component like position where its small
 //and lots of entities (nearly all) will contain it
 //so we can use this faster datastructure
@@ -469,7 +587,8 @@ class ComponentArray : public IComponentArray
 class ComponentMan
 {
 	//string pointer to components
-	std::unordered_map<const char*, ComponentType> components;
+	//static component type so that it's shared between archetypes
+	inline static std::unordered_map<const char*, ComponentType> components;
 	std::unordered_map<const char*, std::shared_ptr<IComponentArray>> componentArrays;
 
 	ComponentType ccounter;
@@ -538,8 +657,15 @@ public:
 	}
 };
 
+struct Archetype
+{
+	ComponentType type;
+	ComponentMan components;
+};
+
 //world systems manages entities together
 //so if we remove an entity it lets the components, and the list of entities know
+//this is where we need to put our logic for archetypes..
 class WorldSystems
 {
 	ComponentMan components;
@@ -561,11 +687,13 @@ class WorldSystems
 		components.destroy(e);
 	}
 
+	/* components are automatically registered though..
 	template <typename T>
 	void registerComponent (void)
 	{
 		components.registerComponent<T>();
 	}
+
 
 	template <typename T>
 	void addComponent (Entity e, T c)
@@ -624,4 +752,4 @@ class WorldSystems
 		return entities.size();
 	}
 };
-
+*/
