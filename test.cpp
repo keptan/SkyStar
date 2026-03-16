@@ -14,6 +14,8 @@ void lalaGameSetup (WorldSystems& world, GameState& state, QTree&, Graphics&)
 }
 
 
+
+
 auto main (void) -> int
 {
 	Game game;
@@ -41,3 +43,8 @@ auto main (void) -> int
 
 	debugGraphicsClose();
 }
+
+//entity e
+//addComponent(e)<dgfd>
+//addComponent(e)<fgdf>
+//commit <- use linear type for this
