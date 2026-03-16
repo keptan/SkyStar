@@ -71,7 +71,7 @@ struct path
 	
 struct sprite 
 {
-	using StorageStrategy = SparseArray<sprite>;
+
 	std::string texture;
 	int height = 32;
 	int width  = 32;
@@ -107,3 +107,28 @@ struct event
 	long int time;
 };
 
+struct hexType
+{
+	sprite s;
+	int tx = 0;
+	int ty = 0;
+};
+
+struct hexTile
+{
+	int hx, hy, hz;
+	hexType type;
+
+	int subx = 0;
+	int suby = 0;
+
+	pos tSpace (void) const
+	{
+		return {(hx * 255.0) + (hy % 2 ? 127.5 : 0), hy * 191.5};
+	}
+};
+
+struct hexPlayerTag
+{
+	long int coolDown = 0;
+};
