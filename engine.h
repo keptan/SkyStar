@@ -27,7 +27,14 @@ enum class InputMask
 	LShift = 1 << 7,
 	PKey   = 1 << 8,
 	Space  = 1 << 9,
-	F1		 = 1 << 10
+	F1		 = 1 << 10,
+	Home   = 1 << 11,
+	ScrollOut = 1 << 12,
+	ScrollIn = 1 << 13,
+	LArrow = 1 << 14,
+	RArrow = 1 << 15,
+	UArrow = 1 << 16,
+	DArrow = 1 << 17
 };
 
 inline InputMask operator | (InputMask lhs, InputMask rhs)
@@ -60,10 +67,10 @@ struct GameState
 {
 	InputMask input = InputMask::None;
 
-	unsigned int frameCount = 0;
-	unsigned long int time = 0;
-	unsigned int frameTime = 0;
-	unsigned int averageFrameTime = 0;
+	long int frameCount = 0;
+	long int time = 0;
+	long int frameTime = 0;
+	long int averageFrameTime = 0;
 };
 
 
@@ -73,6 +80,23 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 	while(SDL_PollEvent(&event))
 	{
 		ImGui_ImplSDL2_ProcessEvent(&event);
+		if ((state.input & InputMask::ScrollIn)== InputMask::ScrollIn) state.input ^= InputMask::ScrollIn;
+		if ((state.input & InputMask::ScrollOut) == InputMask::ScrollOut) state.input ^= InputMask::ScrollOut;
+
+		if (event.type == SDL_MOUSEWHEEL)
+		{
+			if (std::abs(event.wheel.y) < 1) continue;
+			if (event.wheel.y > 0)
+			{
+				state.input |= InputMask::ScrollIn;
+
+			}
+			if (event.wheel.y < 0)
+			{
+				state.input |= InputMask::ScrollOut;
+
+			}
+		}
 
 		 if (event.type == SDL_KEYDOWN) 
 		 {
@@ -87,10 +111,15 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 					case SDLK_p: state.input |= InputMask::PKey; break;
 					case SDLK_SPACE: state.input |= InputMask::Space; break;
 					case SDLK_F1: state.input |= InputMask::F1; break;
+					case SDLK_HOME: state.input |= InputMask::Home; break;
+					case SDLK_UP: state.input |= InputMask::UArrow; break;
+					case SDLK_DOWN: state.input |= InputMask::DArrow; break;
+					case SDLK_LEFT: state.input |= InputMask::LArrow; break;
+					case SDLK_RIGHT: state.input |= InputMask::RArrow; break;
+
 					default:
 						break;
 				}
-
 		} 
 		else if (event.type == SDL_KEYUP)
 		{
@@ -105,6 +134,11 @@ void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& gra
 					case SDLK_p: state.input ^= InputMask::PKey; break;
 					case SDLK_SPACE: state.input ^= InputMask::Space; break;
 					case SDLK_F1: state.input ^= InputMask::F1; break;
+					case SDLK_HOME: state.input ^= InputMask::Home; break;
+					case SDLK_UP: state.input ^= InputMask::UArrow; break;
+					case SDLK_DOWN: state.input ^= InputMask::DArrow; break;
+					case SDLK_LEFT: state.input ^= InputMask::LArrow; break;
+					case SDLK_RIGHT: state.input ^= InputMask::RArrow; break;
 					default:
 						break;
 				}
@@ -119,6 +153,8 @@ struct Graphics
 	SDL2pp::Window		window;
 	SDL2pp::Renderer	rendr;
 
+	double wx, wy, ws;
+
 	std::unordered_map<std::string, std::shared_ptr<SDL2pp::Texture>> textures;
 
 	Graphics (int width, int height)
@@ -126,7 +162,7 @@ struct Graphics
 		  window("Demo..", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			 width, height,
 			 SDL_WINDOW_RESIZABLE),
-		  rendr(window, -1, SDL_RENDERER_ACCELERATED)
+		  rendr(window, -1, SDL_RENDERER_ACCELERATED), wx(0), wy(0), ws(1)
 	{
 		for (const auto& entry : std::filesystem::directory_iterator(DATA_PATH))
 		{
@@ -269,8 +305,8 @@ class Game
 	QTree				space;
 
 public:
-	Game (void)
-		: sceneHeight(480), sceneWidth(640), windowScale(2),
+	Game (const int sh = 480, const int sw = 640,const int ws = 2)
+		: sceneHeight(sh), sceneWidth(sw), windowScale(ws),
 		graphics(sceneWidth * windowScale, sceneHeight * windowScale),
 		space( Rectangle( {0, 0}, sceneWidth, sceneHeight))
 	{}
@@ -313,7 +349,7 @@ public:
 		}
 		graphics.rendr.Present();
 
-		if (!(state.frameCount % 100)) std::print( "{0}\n", world.entities.size());
+		//if (!(state.frameCount % 100)) std::print( "{0}\n", world.entities.size());
 
 		state.frameCount++;
 		const auto endFrame = SDL_GetTicks();
