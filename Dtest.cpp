@@ -22,9 +22,9 @@ int main (void)
 {
 	World world;
 	const auto s = createSignature<pos, vel>();
-	auto e = world.createEntity(s);
+	auto e =0;
 
-	for (int i = 0; i < 10; i++)
+	for (int i = 0; i < 25000; i++)
 	{
 		e = world.emplaceEntity(pos{i,i}, vel{0});
 	}

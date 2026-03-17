@@ -11,6 +11,137 @@
 //the element holds an entity reference and the next element
 //in a packed array
 //do we need to keep track of next? yes to preserve ordering in the packed array?
+
+template <typename T, typename E>
+class Packed
+{
+	std::vector<T> res;
+	std::queue<E> recycled;
+	E count;//why is count a template instead of a size_t?  who knows!
+
+public:
+
+	Packed (void)
+		: count(0)
+	{}
+
+	//nuke everything
+	void clear (void)
+	{
+		recycled = std::queue<E>();
+		res.clear();
+		count = 0;
+	}
+
+	//we always try and fill a previously occupied spot in the array
+	//such that the array always remains 'packed', instead of sparse
+	//all this does is return an empty spot on the array for us to use
+	//this system reads like it could be adapted to a variable amount of entities instead of static
+	//but this would incurr some overhead for allocates
+	//better than just dumpstering each time we go over the limit
+	//as well as overallocating as we do now?
+	E create (void)
+	{
+		if(recycled.size())
+		{
+			const E use = recycled.front();
+
+			recycled.pop();
+			return use;
+		}
+		//this means we created too many entities and our program explodes
+		//fixme(!) arch problem
+		//assert(count < Max && "Packed array is full!");
+		E use = count++;
+		res.push_back({});
+		return use;
+	}
+
+	//log which spaces are free so that we can use them again, yay!
+	void destroy (const E id)
+	{
+		assert(id < res.size() && "destroying an out of bounds item");
+		res[id] = {};
+		//res[id].reset();
+		recycled.push(id);
+	}
+
+	//either set, or retrieve a value from our array
+	T& touch (const E id)
+	{
+		return res[id];
+	}
+
+	const T& touch (const E id) const
+	{
+		return res[id];
+	}
+
+	const T& operator [] (const E id) const
+	{
+		return touch(id);
+	}
+
+	T& operator [] (const E id)
+	{
+		return touch(id);
+	}
+
+
+	//returns how many spaces are currently in use in our array
+	size_t size (void)
+	{
+		return count;
+	}
+
+	//here we create an entire forward iterator for using this container
+	class Iterator
+	{
+		using iterator_category = std::forward_iterator_tag;
+		using difference_type   = std::ptrdiff_t;
+		using value_type		= T;
+		using pointer           = T*;
+		using reference         = T&;
+
+		Packed& res;
+		size_t pos;
+
+		public:
+		explicit Iterator (Packed& r, const size_t p = 0) : res(r), pos(p)
+		{}
+		reference operator*() {return res.res[pos];}
+		Iterator operator++(int)
+		{
+			Iterator tmp = *this;
+			auto t = pos;
+			pos++;
+			return tmp;
+		}
+
+		Iterator& operator++ (void)
+		{
+			auto t = pos;
+			pos++ ;
+			return *this;
+		}
+
+		friend bool operator== (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos == b.pos);
+		}
+
+		friend bool operator!= (const Iterator& a, const Iterator& b)
+		{
+			return (a.pos != b.pos);
+
+		}
+	};
+
+	Iterator begin() {return Iterator(*this, 0);}
+	Iterator end()	 {return Iterator(*this, count);}
+};
+
+
 struct QElement
 {
 	Rectangle box;

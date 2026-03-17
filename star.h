@@ -1,175 +1,25 @@
 #pragma once 
 #include <bitset>
-#include <bit>
-#include <cstddef>
 #include <iterator>
 #include <queue>
 #include <array>
 #include <optional>
 #include <assert.h>
-#include <iostream>
 #include <unordered_map>
-#include <memory>
 #include <vector>
 #include <print>
 
-//a simple entity component system!
-//if you google it you can find out about this
-//in an ECS than each object in the game is just a number, that you can associate with different data
-//like lots of items will have a 'position' data, and only some will have a hitbox
-//the 'Components' of data can be added and removed from the entity at will
+//we completely tore this out and remade it from scratch
+//it's an ECS system that can have up to 128 components, in arbitrary combinations
+//and 4 billion entitities or whatever
+//stores components using archetypes because its faster than not doing that
+//before adding archetypes we were using skiplists instead which is dumb
 
-//the other part is the 'systems'
-//systems are functions that transform the data of valid entities
-//for example the render system can go through all the entities that have 'Position' and 'Sprite' components 
-//and then draw them on the screen
-//
-//this kind of system has lots of advantages like Data oriented design ones
-//and then making the game is easier because you can compose novel entities easier without making new classes in code
-//all the time
-//its more flexible
-//also its cool and its the in way to make videogames
-
-//the type for Entity and component is just a number, entity 1, entity 2.... etc
-//this is a packed array that we use as the global store of which entities are associated with which components
-//well actually all en entity is is just a collection of components right?
-//yes
-template <typename T, typename E>
-class Packed
-{
-	std::vector<T> res;
-	std::queue<E> recycled;
-	E count;//why is count a template instead of a size_t?  who knows!
-
-public:
-
-	Packed (void)
-		: count(0)
-	{}
-
-	//nuke everything
-	void clear (void)
-	{
-		recycled = std::queue<E>();
-		res.clear();
-		count = 0;
-	}
-
-	//we always try and fill a previously occupied spot in the array
-	//such that the array always remains 'packed', instead of sparse
-	//all this does is return an empty spot on the array for us to use
-	//this system reads like it could be adapted to a variable amount of entities instead of static
-	//but this would incurr some overhead for allocates
-	//better than just dumpstering each time we go over the limit
-	//as well as overallocating as we do now?
-	E create (void)
-	{
-		if(recycled.size())
-		{
-			const E use = recycled.front();
-
-			recycled.pop();
-			return use;
-		}
-		//this means we created too many entities and our program explodes
-		//fixme(!) arch problem
-		//assert(count < Max && "Packed array is full!");
-		E use = count++;
-		res.push_back({});
-		return use;
-	}
-
-	//log which spaces are free so that we can use them again, yay!
-	void destroy (const E id)
-	{
-		assert(id < res.size() && "destroying an out of bounds item");
-		res[id] = {};
-		//res[id].reset();
-		recycled.push(id);
-	}
-
-	//either set, or retrieve a value from our array
-	T& touch (const E id)
-	{
-		return res[id];
-	}
-
-	const T& touch (const E id) const
-	{
-		return res[id];
-	}
-
-	const T& operator [] (const E id) const
-	{
-		return touch(id);
-	}
-
-	T& operator [] (const E id)
-	{
-		return touch(id);
-	}
-
-
-	//returns how many spaces are currently in use in our array
-	size_t size (void)
-	{
-		return count;
-	}
-
-	//here we create an entire forward iterator for using this container
-	class Iterator
-	{
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type   = std::ptrdiff_t;
-		using value_type		= T;
-		using pointer           = T*;
-		using reference         = T&;
-
-		Packed& res;
-		size_t pos;
-
-		public:
-		explicit Iterator (Packed& r, const size_t p = 0) : res(r), pos(p)
-		{}
-		reference operator*() {return res.res[pos];}
-		Iterator operator++(int)
-		{
-			Iterator tmp = *this;
-			auto t = pos;
-			pos++;
-			return tmp;
-		}
-
-		Iterator& operator++ (void)
-		{
-			auto t = pos;
-			pos++ ;
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos == b.pos);
-		}
-
-		friend bool operator!= (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos != b.pos);
-
-		}
-	};
-
-	Iterator begin() {return Iterator(*this, 0);}
-	Iterator end()	 {return Iterator(*this, count);}
-};
 
 using Entity = uint64_t;
-//trying to use a skiplist to skip holes when processing
-//if we can detect holes on insertion that is?
-//all we need to do is make sure we dont mis-hole, we can unhole and be fine!
-//
-//a sparse away is more efficient for iterating large components that most entities DO NOT use!
+//an entity is a 32bit index with a 32bit generation counter so we can deadcheck them
 
+//this logic allows us to tally up our 128 components as they first used, type based incremental counter
 inline uint32_t componentCounter = 0;
 inline std::unordered_map<uint32_t, size_t> componentSizes;
 
@@ -181,6 +31,8 @@ static uint32_t componentId (void)
 	return id;
 }
 
+//signature of what components an entity has, determins what archetype it goes into
+//also determines which archetypes will get queried by our systems if the masks overlap
 struct Signature
 {
 	__uint128_t archetypeID = 0;
@@ -228,16 +80,18 @@ Signature createSignature (void)
 	return out;
 }
 
-struct ComponentRecord
+// All entities no matter what archetype are registered here
+// this record connects entitiy numbers to the archetype storage rows
+// so we can quickly access an archetype from the corresponding entity
+struct EntityRegister
 {
 
 	struct alignas(32) EntityRecord
 	{
-		uint32_t generation;
-		uint32_t archetypeID;
-		uint32_t rowIndex;
-		uint32_t statusFlags;
-		Signature signature;
+		uint32_t generation; // used for validation
+		uint32_t rowIndex; // used to directly access the index in the archetype storage
+		uint32_t statusFlags; // not implemented yet, but will let us to flag things without moving storage
+		Signature signature; // the component mask mentioned above
 	};
 
 	// 12 bits for the page size (4,096 entries per page)
@@ -248,12 +102,13 @@ struct ComponentRecord
 	//full index range
 	static constexpr uint32_t directorySize = 1 << (32 - pageShift);
 
+	//all our paged storage, pages of 4096 entityrecords all the way to 4 bazillion
 	EntityRecord** pageDirectory;
 
 	uint32_t nextFree = 0xFFFFFFFF; //head of free list
 	uint32_t highestPage = 0;
 
-	ComponentRecord (void)
+	EntityRegister (void)
 	{
 		pageDirectory = static_cast<EntityRecord**>(std::calloc(directorySize, sizeof(EntityRecord*)));
 
@@ -262,7 +117,7 @@ struct ComponentRecord
 		}
 	}
 
-	~ComponentRecord(void)
+	~EntityRegister(void)
 	{
 		if (!pageDirectory) return;
 		for (uint32_t i = 0; i < directorySize; i++)
@@ -345,6 +200,8 @@ struct ComponentRecord
 
 };
 
+//the handle for the ECS system
+//coordinates archetype storage and entity id handouts
 struct World
 {
 
@@ -469,7 +326,7 @@ struct World
 		}
 	};
 
-	ComponentRecord entities;
+	EntityRegister entities;
 	std::unordered_map<__uint128_t, Archetype> archetypes;
 
 	Entity createEntity (const Signature s)
@@ -540,316 +397,3 @@ struct World
 		}
 	}
 };
-
-
-
-/*
-//the seq array is a more simpler case where its a component like position where its small
-//and lots of entities (nearly all) will contain it
-//so we can use this faster datastructure
-template <typename T, size_t Max_T = MAX_ENTITIES>
-class SeqArray
-{
-	std::bitset<Max_T> enabled;
-	std::array<T, Max_T> res;
-
-	size_t next_valid (const size_t start = 0)
-	{
-		if(start < 0 || start >= Max_T) return Max_T;
-		for(int i = start + 1; i < Max_T; i++)
-		{
-			if(enabled[i]) return res[i];
-		}
-	}
-
-public:
-
-	T& insert (const size_t pos, const T in)
-	{
-		enabled.set(pos);
-		res[pos] = in;
-		return res[pos];
-	}
-
-	void remove (const size_t pos)
-	{
-		enabled.reset(pos);
-	}
-
-	T& get (const size_t pos)
-	{
-		return res[pos];
-	}
-
-
-	class Iterator 
-	{
-		using iterator_category = std::forward_iterator_tag;
-		using difference_type   = std::ptrdiff_t;
-		using value_type		= T;
-		using pointer           = T*;
-		using reference         = T&;
-
-		SeqArray& res;
-		size_t pos;
-
-		public:
-
-		Iterator (SeqArray& r, const size_t p = 0) : res(r)
-		{
-			 pos = res.next_valid(p);
-		};
-		reference operator*() {return res.get(pos);}
-		Iterator operator++(int)
-		{
-			Iterator tmp = *this;
-			auto t = pos;
-			pos = res.next_valid(pos);
-			return tmp;
-		}
-
-		Iterator& operator++ (void)
-		{
-			auto t = pos;
-			pos = res.next_valid(pos);
-
-			return *this;
-		}
-
-		friend bool operator== (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos == b.pos);
-		}
-
-		friend bool operator!= (const Iterator& a, const Iterator& b)
-		{
-			return (a.pos != b.pos);
-
-		}
-	};
-
-	Iterator begin() {return Iterator(*this, 0);}
-	Iterator end()	 {return Iterator(*this, Max_T);}
-};
-
-
-class IComponentArray
-{
-public:
-	virtual ~IComponentArray() = default;
-	virtual void entityDestroyed(Entity entity) = 0;
-};
-
-//some fancy tag dispatch so that we can use different storage strategies optionally 
-template<typename T, typename Default >
-class StorageDispatch
-{
-	template <typename C> static Default test( ... );
-	template <typename C> static typename C::StorageStrategy test (typename C::StorageStrategy * );
-public:
-	using Type = decltype( test<T>(nullptr) );
-};
-
-//component array uses this interface V so that we can keep track of entities being wacked
-//in which case we should remove the component
-//maybe we can just skip this step though if we rely on the packed_list
-//uhhh???
-template<typename T>
-class ComponentArray : public IComponentArray 
-{
-	using Storage = StorageDispatch<T, SeqArray<T, MAX_ENTITIES>>::Type;
-	Storage res;
-
-	public:
-	void insert (const Entity e, const T component)
-	{
-		res.insert(e, component);
-	}
-
-	void remove (const Entity e)
-	{
-		res.remove(e);
-	}
-
-	T& get (const Entity e)
-	{
-		return res.get(e);
-	}
-
-	void entityDestroyed(const Entity e) override 
-	{
-		res.remove(e);
-	}
-};
-
-//components man does lots of cool magic to help us register and collect
-//components easily
-class ComponentMan
-{
-	//string pointer to components
-	//static component type so that it's shared between archetypes
-	inline static std::unordered_map<const char*, ComponentType> components;
-	std::unordered_map<const char*, std::shared_ptr<IComponentArray>> componentArrays;
-
-	ComponentType ccounter;
-
-
-public: 
-
-	ComponentMan (void)
-		: ccounter(1)
-	{}
-
-	template <typename T>
-	ComponentType registerComponent (void)
-	{
-		const char* typeName = typeid(T).name();
-		std::cerr << "registering: " << typeName << std::endl;
-		components.insert({typeName, ccounter});
-		componentArrays.insert({typeName, std::make_shared<ComponentArray<T>>()});
-
-		return ccounter++;
-	}
-
-
-	template <typename T>
-	std::shared_ptr<ComponentArray<T>> getComponentArray (void)
-	{
-		const char* typeName = typeid(T).name();
-		//assert(components.find(typeName) != components.end() && "Component not registered before use.");
-		if(components.find(typeName) == components.end()) registerComponent<T>();
-
-		return std::static_pointer_cast<ComponentArray<T>>(componentArrays[typeName]);
-	}
-
-	template <typename T>
-	ComponentType getId (void)
-	{
-		const char* typeName = typeid(T).name();
-
-		if(components.find(typeName) == components.end())
-		{
-			return 0;
-		}
-
-		return components[typeName];
-	}
-
-	template<typename T>
-	void add (const Entity entity, const T component)
-	{
-		getComponentArray<T>()->insert(entity, component);
-	}
-
-	template<typename T>
-	T& getComponent (const Entity e)
-	{
-		return getComponentArray<T>()->get(e);
-	}
-
-	void destroy (const Entity entity)
-	{
-		for (auto const& pair : componentArrays)
-		{
-			auto const& component = pair.second;
-			component->entityDestroyed(entity);
-		}
-	}
-};
-
-struct Archetype
-{
-	ComponentType type;
-	ComponentMan components;
-};
-
-//world systems manages entities together
-//so if we remove an entity it lets the components, and the list of entities know
-//this is where we need to put our logic for archetypes..
-class WorldSystems
-{
-	ComponentMan components;
-
-	public:
-	EMan entities;
-
-
-	Entity newEntity (void)
-	{
-		auto out = entities.create();
-		entities[out] = 0;
-		return out;
-	}
-
-	void killEntity (Entity e)
-	{
-		entities.destroy(e);
-		components.destroy(e);
-	}
-
-	/* components are automatically registered though..
-	template <typename T>
-	void registerComponent (void)
-	{
-		components.registerComponent<T>();
-	}
-
-
-	template <typename T>
-	void addComponent (Entity e, T c)
-	{
-		components.add(e, c);
-		auto& signature = entities.touch(e);
-		signature.set(components.getId<T>(), true);
-	}
-
-	template <typename T>
-	void removeComponent (Entity e)
-	{
-		components.destroy(e);
-		auto& signature = entities.touch(e);
-		signature.set(components.getId<T>(), false);
-	}
-
-	std::vector<Entity> signatureScan (const Signature s)
-	{
-		std::vector<Entity> acc;
-		if(s == 0) 
-		{
-			std::cerr << "blank signature!! returning empty array or something" << std::endl;
-			return acc;
-		}
-		for(size_t i = 0; i < entities.size(); i++)
-		{
-			if((entities.touch(i) & s) == s)	acc.push_back(i);
-		}
-
-		return acc;
-	}
-
-	template<typename... Args>
-	Signature createSignature (void)
-	{
-		Signature out = 0;
-		(out.set(getComponentId<Args>()), ... );
-		return out;
-	}
-
-	template <typename T>
-	auto getComponents (void)
-	{
-		return components.getComponentArray<T>();
-	}
-
-	template <typename T>
-	ComponentType getComponentId (void)
-	{
-		return components.getId<T>();
-	}
-
-	int eCount (void)
-	{
-		return entities.size();
-	}
-};
-*/

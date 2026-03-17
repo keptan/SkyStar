@@ -27,6 +27,8 @@
 					SDL2.dev
 					SDL2_mixer
 					xorg.libX11
+					perf
+					valgrind
             ];
 
 	    shellHook = '' echo Welcome back commander :3 '';
