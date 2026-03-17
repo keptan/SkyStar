@@ -21,15 +21,19 @@ struct vel
 int main (void)
 {
 	World world;
-
 	const auto s = createSignature<pos, vel>();
-	const auto e = world.createEntity(s);
+	auto e = world.createEntity(s);
 
-	const auto v = world.archetypes.at(s.archetypeID).getColumn<pos>(world.entities.getRecordPointer(e)->rowIndex);
-	v[0].x = 10;
+	for (int i = 0; i < 10; i++)
+	{
+		e = world.emplaceEntity(pos{i,i}, vel{0});
+	}
 
-	std::print("{}\n", v[0].x);
+	//std::print("{}\n", v[0].x);
 
+	auto q = World::Query<pos, vel>(world);
+
+	world.each(q, [](const pos& p, const vel& v){std::print("{}\n", p.x);});
 
 	return 0;
 }
