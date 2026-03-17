@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <memory>
 #include <vector>
+#include <print>
 
 //a simple entity component system!
 //if you google it you can find out about this
@@ -190,6 +191,11 @@ struct Signature
 		(setComponent<Components>(), ...);
 	}
 
+	Signature (void)
+	{
+
+	}
+
 	template <typename T>
 	inline void setComponent (void)
 	{
@@ -352,16 +358,50 @@ struct World
 			explicit Columns (Signature s)
 				: sig(s), res(nullptr)
 			{
-				res = new void* [s.countSet()];
+				if (s.archetypeID)
+				{
+					res = new void* [s.countSet()];
+					//for (int i = 0; i < s.countSet(); i++) res[i] = nullptr;
+				}
+			}
+
+			Columns (Columns&& a) noexcept
+				: sig(a.sig),res(a.res)
+			{
+				a.res = nullptr;
+				a.sig = Signature();
+			}
+
+			Columns& operator =(Columns&& a) noexcept
+			{
+				if (this != &a)
+				{
+					this->clear();
+					this->res = a.res;
+					this->sig = a.sig;
+
+					a.res = nullptr;
+					a.sig = Signature();
+				}
+				return *this;
+			}
+
+			void clear (void)
+			{
+				if (res)
+				{
+					for (uint32_t i = 0; i < sig.countSet(); i++)
+					{
+						free(res[i]);
+					}
+					delete[] res;
+					res = nullptr;
+				}
 			}
 
 			~Columns(void)
 			{
-				if (res)
-				{
-					for (int i = 0;  i < sig.countSet(); i++) if (res[i]) free(res[i]);
-					free(res);
-				}
+				clear();
 			}
 		};
 
@@ -409,19 +449,24 @@ struct World
 
 		uint32_t createRecord (void)
 		{
-			if (count / 4096 <= pages.size()) allocatePage();
+			if ((count / 4096) >= pages.size())
+			{
+				//std::print("{}, {}\n", count/4096, pages.size());
+				allocatePage();
+			}
 			return count++;
 		}
 
 		template <typename T>
-		T* getColumn (const uint32_t index)
+		void setComponent (const uint32_t index, T&& value)
 		{
-			const auto p = index / 4096;
-			const auto i = index - (p * 4096);
+			const auto page = index / 4096;
+			const auto i = index - (page * 4096);
+			const auto bit = bitToColumn[componentId<T>()];
+			T* col = static_cast<T*>( pages[page].res[bit]);
 
-			return static_cast<T*>(pages[p].res[i]);
+			col[i] = std::forward<T>(value);
 		}
-
 	};
 
 	ComponentRecord entities;
@@ -434,11 +479,66 @@ struct World
 		const auto i = archetypes.at(s.archetypeID).createRecord();
 		entities.getRecordPointer(e)->rowIndex = i;
 
+		return e;
+	}
+	template <typename... Ts>
+	Entity emplaceEntity (Ts&&... components)
+	{
+		Signature s = createSignature<std::decay_t<Ts>...>();
+		if (!archetypes.contains(s.archetypeID)) archetypes.emplace(s.archetypeID, s);
+		auto& a = archetypes.at(s.archetypeID);
+		const auto e = entities.createEntity(s);
+		const auto i = a.createRecord();
+		entities.getRecordPointer(e)->rowIndex = i;
 
+		(a.setComponent<std::decay_t<Ts>>(i, std::forward<Ts>(components)), ...);
 
 		return e;
 	}
 
+	template <typename ... Ts>
+	struct Query
+	{
+		Signature s = createSignature<Ts...>();
+		std::vector<Archetype*> matching;
+
+		explicit Query (World& w)
+		{
+			for (auto &arch : w.archetypes)
+			{
+				if (( arch.second.sig.archetypeID & s.archetypeID) == s.archetypeID)
+				{
+					matching.push_back(&arch.second);
+				}
+			}
+		}
+	};
+
+	template<typename... Ts, typename F>
+	void each (Query<Ts...> query, F&& func)
+	{
+		for (Archetype* arch : query.matching)
+		{
+			auto total = arch->count;
+
+			for ( uint32_t p = 0; p < arch->pages.size(); p++)
+			{
+				auto& page = arch->pages[p];
+
+				auto columns = std::make_tuple(
+					static_cast<Ts*>(page.res[arch->bitToColumn[componentId<Ts>()]])...
+					);
+
+				uint32_t entitiesInPage = std::min(4096u, total - (p * 4096));
+
+				for (uint32_t i = 0; i < entitiesInPage; i++)
+				{
+					func(std::get<Ts*>(columns)[i]...);
+				}
+
+			}
+		}
+	}
 };
 
 
