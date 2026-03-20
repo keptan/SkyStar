@@ -74,7 +74,7 @@ struct GameState
 };
 
 
-void sweeper (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+void sweeper (World& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	SDL_Event event;
 	while(SDL_PollEvent(&event))
@@ -190,7 +190,7 @@ struct Graphics
 
 struct SystemRegister
 {
-	using SystemFunction = void(*)(WorldSystems& world, GameState& state, QTree& space, Graphics& graphics);
+	using SystemFunction = void(*)(World& world, GameState& state, QTree& space, Graphics& graphics);
 
 	struct SystemGraphNode
 	{
@@ -298,7 +298,7 @@ class Game
 	int sceneHeight, sceneWidth, windowScale;
 
 
-	WorldSystems	world;
+	World	world;
 	Graphics			graphics;
 	GameState		state;
 	SystemRegister systems;
