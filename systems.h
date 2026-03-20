@@ -22,7 +22,7 @@ void renderWall (WorldSystems& world, GameState& state, SDL2pp::Renderer& rendr,
 	}
 }
 */
-
+/*
 inline void playerMove (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<playerTag, pos, velocity>();
@@ -34,7 +34,7 @@ inline void playerMove (WorldSystems& world, GameState& state, QTree& space, Gra
 		if((state.input & InputMask::Up) == InputMask::Up) dir = dir + velocity{0, -50};
 		if((state.input & InputMask::Left) == InputMask::Left) dir = dir + velocity{-50, 0};
 		if((state.input & InputMask::Right) == InputMask::Right) dir = dir + velocity{50, 0};
-		if((state.input & InputMask::Down) == InputMask::Down) dir = dir + velocity{0, 50};	
+		if((state.input & InputMask::Down) == InputMask::Down) dir = dir + velocity{0, 50};
 
 		if((state.input & InputMask::LShift) == InputMask::LShift) dir = dir.normalize(500);
 		else dir = dir.normalize(250);
@@ -129,7 +129,7 @@ inline void cameraMove (WorldSystems& world, GameState& state, QTree& space, Gra
  *for (const auto archetype : space) for (const auto e )
  *space = archietype.getComponents<pos>()..
  */
-
+/*
 inline void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&)
 {
 	auto sig = world.createSignature<path>();
@@ -155,7 +155,9 @@ inline void pathSystem (WorldSystems& world, GameState& state, QTree&, Graphics&
 		}
 	}
 }
+*/
 
+/*
 inline void hexRender (WorldSystems& world, GameState& state, QTree&, Graphics& graphics)
 {
 	auto sig = world.createSignature<pos, hexTile>();
@@ -184,27 +186,25 @@ inline void hexRender (WorldSystems& world, GameState& state, QTree&, Graphics& 
 	}
 
 }
+*/
 
-inline void renderSystem (WorldSystems& world, GameState& state, QTree&, Graphics& graphics)
+inline void renderSystem (World& world, GameState& state, QTree&, Graphics& graphics)
 {
-	auto sig = world.createSignature<pos, sprite, renderTag>();
-	auto ents = world.signatureScan(sig);
 
-	for(const auto i : ents)
+	const auto q = World::Query<pos, sprite, renderTag>(world);
+	world.each(q, [&](const pos& space, const sprite& texture, const renderTag& r)
 	{
-		auto& space = world.getComponents<pos>()->get(i);
-		auto& texture = world.getComponents<sprite>()->get(i);
-
 		graphics.rendr.Copy
 		(
 			*graphics.getTexture( texture.texture),
-			SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height), 
+			SDL2pp::Rect(0, texture.height * texture.frame, texture.width, texture.height),
 			SDL2pp::Rect((space.x + graphics.wx) * graphics.ws, (space.y + graphics.wy) * graphics.ws, texture.width * graphics.ws, texture.height * graphics.ws),
 			space.rot * 180 / M_PI
 		);
 	}
+	);
 }
-
+/*
 inline void animationSystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<sprite, animationTag>();
@@ -220,27 +220,25 @@ inline void animationSystem (WorldSystems& world, GameState& state, QTree& space
 
 	}
 }
+*/
 
-inline void spawnFireBolts (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void spawnFireBolts (World& world, GameState& state, QTree& space, Graphics& graphics)
 {
-	if (state.frameCount % 100) fireball(world, state);
+	fireball(world, state);
 }
 
-inline void velocitySystem (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+inline void velocitySystem (World& world, GameState& state, QTree& space, Graphics& graphics)
 {
-	auto sig  = world.createSignature<velocity, pos>();
-	auto ents = world.signatureScan(sig);
-
-	for(const auto i: ents)
+	auto q = World::Query<pos, velocity>(world);
+	world.each(q, [&](pos& p, const velocity& v)
 	{
-		auto& p = world.getComponents<pos>()->get(i);
-		auto& v = world.getComponents<velocity>()->get(i);
 		p.x += v.dx * (state.frameTime / 1000.0);
 		p.y += v.dy * (state.frameTime / 1000.0);
 		p.rot += v.dr * (state.frameTime / 1000.0);
-	}
+	});
 }
 
+/*
 inline void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig  = world.createSignature<outOfBoundsTag, pos>();
@@ -297,4 +295,4 @@ inline void spaceSystem (WorldSystems& world, GameState& state, QTree& space, Gr
 		graphics.rendr.DrawRect( SDL2pp::Rect( (r.corner.x * 2), (r.corner.y) * 2, r.w * 2 ,  r.h * 2));
 	}
 }
-
+*/
