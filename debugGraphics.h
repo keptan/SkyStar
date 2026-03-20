@@ -5,7 +5,7 @@
 #include "imgui_impl_sdlrenderer2.h"
 
 
-	inline void graphicsSetup (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+	inline void graphicsSetup (World& world, GameState& state, QTree& space, Graphics& graphics)
 	{
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
@@ -15,7 +15,7 @@
 		ImGui::GetIO();
 	}
 
-	inline void graphicsRun (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+	inline void graphicsRun (World& world, GameState& state, QTree& space, Graphics& graphics)
 	{
 		bool toggleDebug = true;
 		ImGui_ImplSDLRenderer2_NewFrame();
