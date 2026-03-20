@@ -26,8 +26,10 @@ inline std::unordered_map<uint32_t, size_t> componentSizes;
 template <typename T>
 static uint32_t componentId (void)
 {
+
 	static const uint32_t id = componentCounter++;
 	static const auto inserted = componentSizes.insert(std::make_pair(id, sizeof(T)));
+
 	return id;
 }
 
@@ -297,7 +299,7 @@ struct World
 				uint32_t global = bit + offset;
 				bitToColumn[global] = column;
 
-				posix_memalign(&columns[column], 32, 4096 * componentSizes[global]);
+				auto e = posix_memalign(&columns[column], 32, 4096 * componentSizes[global]);
 				column++;
 
 				val &= ~(1ULL << bit);
@@ -321,8 +323,7 @@ struct World
 			const auto i = index - (page * 4096);
 			const auto bit = bitToColumn[componentId<T>()];
 			T* col = static_cast<T*>( pages[page].res[bit]);
-
-			col[i] = std::forward<T>(value);
+			new (&col[i]) T(std::forward<T>(value));
 		}
 	};
 
