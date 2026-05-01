@@ -1,4 +1,16 @@
 # SkyStar
-The Starry Sky Galaxy Association (星空界連合会?) is an intergalactic federation governing the Starry Sky Galaxy by establishing laws that should be followed, such as planets without space travel aren't allowed to know an alien identity.
 
-a janky and simple entity component system, playing around with some ideas
+Entity Component System game engine using SDLPP
+
+A long time ago I watched a mike acton video and wanted to make it
+has
+- entities
+- systems
+- components
+- archetypes
+- systems manager (topologically sort systems)
+- imgui
+- opengl
+
+a nice contributor also added curves
+I also want to add entity hierarchies and a game
