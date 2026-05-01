@@ -20,6 +20,10 @@ ADD_DEFINITIONS(
         -DSDL_VIDEO_DRIVER_WAYLAND=1
 )
 
+#glad
+ADD_LIBRARY(glad STATIC glad/src/gl.c)
+TARGET_INCLUDE_DIRECTORIES(glad PUBLIC glad/include)
+
 
 # set up SDL2pp library
 SET(SDL2PP_WITH_IMAGE YES)
@@ -81,4 +85,5 @@ ADD_EXECUTABLE(hex hex.cpp
 TARGET_LINK_LIBRARIES(hex PUBLIC imgui)
 # TARGET_LINK_LIBRARIES(tree ${SDL2PP_LIBRARIES})
 #add_executable(macroEcon MacroEcon/macroEcon.cpp)
-ADD_EXECUTABLE(dtest Dtest.cpp)
+ADD_EXECUTABLE(ztest Gtest.cpp)
+TARGET_LINK_LIBRARIES(ztest PUBLIC imgui glad)
