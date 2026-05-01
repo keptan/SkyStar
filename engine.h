@@ -1,5 +1,6 @@
 #pragma once
-#include <any>
+
+
 #include <memory>
 
 #include "star.h"
@@ -146,8 +147,22 @@ void sweeper (World& world, GameState& state, QTree& space, Graphics& graphics)
 	}
 }
 
+struct GLGraphics
+{
+
+
+	GLGraphics (void)
+	{
+
+	}
+
+
+};
+
 struct Graphics
 {
+
+
 	SDL2pp::SDL   		sdl;
 	SDL2pp::SDLTTF 	sdl_ttf;
 	SDL2pp::Window		window;
