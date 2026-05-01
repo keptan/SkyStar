@@ -224,7 +224,7 @@ inline void animationSystem (WorldSystems& world, GameState& state, QTree& space
 
 inline void spawnFireBolts (World& world, GameState& state, QTree& space, Graphics& graphics)
 {
-	fireball(world, state);
+	for (int i = 0; i < 100; i++) fireball(world, state);
 }
 
 inline void velocitySystem (World& world, GameState& state, QTree& space, Graphics& graphics)
@@ -238,11 +238,10 @@ inline void velocitySystem (World& world, GameState& state, QTree& space, Graphi
 	});
 }
 
-/*
-inline void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
+
+inline void outOfBounds (World& world, GameState& state, QTree& space, Graphics& graphics)
 {
-	auto sig  = world.createSignature<outOfBoundsTag, pos>();
-	auto ents = world.signatureScan(sig);
+/*
 
 	for(const auto i: ents)
 	{
@@ -250,8 +249,10 @@ inline void outOfBounds (WorldSystems& world, GameState& state, QTree& space, Gr
 		if(p.y >= 500 || p.y <= -60 || p.x <= -20 || p.x >= 700) 
 		world.killEntity(i);
 	}
+	*/
 }
-
+/*
+ *
 inline void collision (WorldSystems& world, GameState& state, QTree& space, Graphics& graphics)
 {
 	auto sig = world.createSignature<Rectangle, pos, outOfBoundsTag>();

@@ -268,6 +268,7 @@ struct World
 		uint32_t bitToColumn[128];
 		uint32_t count;
 		std::vector<Columns> pages;
+		std::vector<Entity> records;
 
 		explicit Archetype( const Signature& s)
 			:sig(s), count(0)
@@ -306,13 +307,15 @@ struct World
 			}
 		}
 
-		uint32_t createRecord (void)
+		uint32_t createRecord (const Entity& e)
 		{
 			if ((count / 4096) >= pages.size())
 			{
 				//std::print("{}, {}\n", count/4096, pages.size());
 				allocatePage();
 			}
+
+			records.push_back(e);
 			return count++;
 		}
 
@@ -323,8 +326,12 @@ struct World
 			const auto i = index - (page * 4096);
 			const auto bit = bitToColumn[componentId<T>()];
 			T* col = static_cast<T*>( pages[page].res[bit]);
+
+			//todo: can we use placement new only when we know its empty by generataion count
 			new (&col[i]) T(std::forward<T>(value));
 		}
+
+
 	};
 
 	EntityRegister entities;
@@ -334,7 +341,7 @@ struct World
 	{
 		if (!archetypes.contains(s.archetypeID)) archetypes.emplace(s.archetypeID, s);
 		const auto e = entities.createEntity(s);
-		const auto i = archetypes.at(s.archetypeID).createRecord();
+		const auto i = archetypes.at(s.archetypeID).createRecord(e);
 		entities.getRecordPointer(e)->rowIndex = i;
 
 		return e;
@@ -346,7 +353,7 @@ struct World
 		if (!archetypes.contains(s.archetypeID)) archetypes.emplace(s.archetypeID, s);
 		auto& a = archetypes.at(s.archetypeID);
 		const auto e = entities.createEntity(s);
-		const auto i = a.createRecord();
+		const auto i = a.createRecord(e);
 		entities.getRecordPointer(e)->rowIndex = i;
 
 		(a.setComponent<std::decay_t<Ts>>(i, std::forward<Ts>(components)), ...);
@@ -396,5 +403,16 @@ struct World
 
 			}
 		}
+	}
+
+	void remove (const Entity& e)
+	{
+		const auto record = entities.getRecordPointer(e);
+		const auto index = static_cast<uint32_t>(e);
+		const auto generation = static_cast<uint32_t>(e >> 32);
+
+		if (generation != record->generation) return;
+
+
 	}
 };
