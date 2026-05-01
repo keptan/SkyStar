@@ -85,5 +85,6 @@ ADD_EXECUTABLE(hex hex.cpp
 TARGET_LINK_LIBRARIES(hex PUBLIC imgui)
 # TARGET_LINK_LIBRARIES(tree ${SDL2PP_LIBRARIES})
 #add_executable(macroEcon MacroEcon/macroEcon.cpp)
-ADD_EXECUTABLE(ztest Gtest.cpp)
+ADD_EXECUTABLE(ztest Gtest.cpp
+        graphics/triangle.h)
 TARGET_LINK_LIBRARIES(ztest PUBLIC imgui glad)
