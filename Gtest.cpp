@@ -47,11 +47,19 @@ auto main (void) -> int
 	SDL_Event event;
 
 	//we want to make a triangle, first we will make a triangle
+	//we've upgraded this to two triangles using EBO
 	float triangle[] =
 	{
-		-0.5f, -0.5f, 0.0f,
-		 0.5f, -0.5f, 0.0f,
-		 0.0f, 0.5f, 0.0f
+		0.5f, 0.5f, 0.0f, //top right
+		0.5f, -0.5f, 0.0f, //bottom right
+		-0.5f, -0.5f, 0.0f, //bottom left
+		-0.5f, 0.5f, 0.0f //top left
+	};
+
+	unsigned int indices [] =
+	{
+		0, 1, 3, //first triangle
+		1, 2, 3 //second triangle
 	};
 
 
@@ -121,12 +129,16 @@ auto main (void) -> int
 
 	//next we want to make a vertex buffer which is where in the GPU the triangle will go
 	//and a VAO which stores attribute calls that we make about the data we will feed the buffer
-	unsigned int VBO, VAO;
-
+	unsigned int VBO, VAO, EBO;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO); //make an ID for the buffer
+	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO); //bind to current array buffer
 	glBufferData(GL_ARRAY_BUFFER, sizeof(triangle), triangle, GL_STATIC_DRAW);
 	//we put triangle in the buffer, and tell it to put it in slow memory cause we aren't going to change it
@@ -149,10 +161,12 @@ auto main (void) -> int
 
 		// Render Frame
 		glClearColor(0.1f, 0.12f, 0.15f, 1.0f);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glUseProgram(shaderProgram);
 		glBindVertexArray(VAO);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO); //this is done automatically because it's associated with the VAO
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		// Swap buffers using the raw window pointer
 		SDL_GL_SwapWindow(window.Get());
 	}
