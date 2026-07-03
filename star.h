@@ -8,6 +8,8 @@
 #include <unordered_map>
 #include <vector>
 #include <print>
+#include <deque>
+#include <optional>
 
 //we completely tore this out and remade it from scratch
 //it's an ECS system that can have up to 128 components, in arbitrary combinations
@@ -28,7 +30,7 @@ static uint32_t componentId (void)
 {
 
 	static const uint32_t id = componentCounter++;
-	static const auto inserted = componentSizes.insert(std::make_pair(id, sizeof(T)));
+	//static const auto inserted = componentSizes.insert(std::make_pair(id, sizeof(T)));
 
 	return id;
 }
@@ -90,83 +92,35 @@ struct EntityRegister
 
 	struct alignas(32) EntityRecord
 	{
-		uint32_t generation; // used for validation
-		uint32_t rowIndex; // used to directly access the index in the archetype storage
-		uint32_t statusFlags; // not implemented yet, but will let us to flag things without moving storage
+		uint32_t generation = 0; // used for validation
+		uint32_t rowIndex = 0xFFFFFFFF; // used to directly access the index in the archetype storage
+		uint32_t statusFlags = 0; // not implemented yet, but will let us to flag things without moving storage
 		Signature signature; // the component mask mentioned above
 	};
 
-	// 12 bits for the page size (4,096 entries per page)
-	static constexpr uint32_t pageShift = 12;
-	static constexpr uint32_t pageSize  = 1 << pageShift; // 4096
-	static constexpr uint32_t pageMask  = pageSize - 1;
-
-	//full index range
-	static constexpr uint32_t directorySize = 1 << (32 - pageShift);
 
 	//all our paged storage, pages of 4096 entityrecords all the way to 4 bazillion
-	EntityRecord** pageDirectory;
-
-	uint32_t nextFree = 0xFFFFFFFF; //head of free list
-	uint32_t highestPage = 0;
-
-	EntityRegister (void)
-	{
-		pageDirectory = static_cast<EntityRecord**>(std::calloc(directorySize, sizeof(EntityRecord*)));
-
-		if (!pageDirectory) {
-			throw std::bad_alloc();
-		}
-	}
-
-	~EntityRegister(void)
-	{
-		if (!pageDirectory) return;
-		for (uint32_t i = 0; i < directorySize; i++)
-		{
-			if (pageDirectory[i] != nullptr) free(pageDirectory[i]);
-		}
-		free(pageDirectory);
-	}
-
-	void allocatePage (void)
-	{
-		//book keep what page we are creating, and that we aren't making a zillion entities...
-		const auto pageId = highestPage++;
-		assert( pageId < directorySize && "Exceeded max entities");
-
-		//allocate 4099 records, each 32 bytes, alligned to 32 bytes
-		void* ptr = nullptr;
-		const size_t ps = pageSize * sizeof(EntityRecord);
-		if (posix_memalign(&ptr, 32, ps)) assert (false && "Memory allocation failed!");
-
-		const auto page = static_cast<EntityRecord*>(ptr);
-
-		const auto baseIndex = pageId << pageShift;
-
-		//setup free list
-		for (uint32_t i = 0; i < pageSize; ++i)
-		{
-			page[i].generation = 1;
-			page[i].signature.archetypeID = 0;
-
-			page[i].rowIndex = (i == pageSize -1) ? 0xFFFFFFFF : (baseIndex + i + 1);
-		}
-
-		pageDirectory[pageId] = page;
-		nextFree = baseIndex;
-	}
+	std::deque<EntityRecord> entities;
+	std::optional<uint32_t> nextFree = std::nullopt;
 
 	Entity createEntity (const Signature s)
 	{
-		//make a new page if necessary
-		if  (nextFree == 0xFFFFFFFF) allocatePage();
+		uint32_t index;
+		if (nextFree)
+		{
+			index = nextFree.value();
+			nextFree = (entities[index].rowIndex == 0xFFFFFFFF)
+				? std::nullopt
+				: std::make_optional(entities[index].rowIndex);
 
-		uint32_t index = nextFree;
-		EntityRecord& record = pageDirectory[index >> pageShift][index & pageMask];
+		}
+		else
+		{
+			entities.push_back(EntityRecord());
+			index = entities.size() - 1;
+		}
 
-		nextFree = record.rowIndex;
-
+		EntityRecord& record = entities[index];
 		record.signature = s;
 
 		return ( static_cast<uint64_t>(record.generation) << 32| index);
@@ -175,31 +129,24 @@ struct EntityRegister
 	void destroyEntity (const Entity i)
 	{
 		const auto index = static_cast<uint32_t>(i);
-		auto& record = pageDirectory[index >> pageShift][index & pageMask];
-
+		EntityRecord& record = entities[index];
 		record.generation++;
 		record.signature.archetypeID = 0;
 
-		record.rowIndex = nextFree;
+		record.rowIndex = nextFree.value_or(0xFFFFFFFF);
 		nextFree = index;
 	}
 
-	EntityRecord* getRecordPointer (const Entity i) const
+	EntityRecord* getRecordPointer (const Entity i)
 	{
 		const auto index = static_cast<uint32_t>(i);
 		const auto generation = static_cast<uint32_t>(i >> 32);
 
-		const auto page = index >> pageShift;
-		const auto offset = index & pageMask;
+		if (entities[index].generation != generation) return nullptr;
+		if (index >= entities.size()) return nullptr;
 
-		if (!pageDirectory[page]) return nullptr;
-		if (pageDirectory[page][offset].generation != generation) return nullptr;
-
-		return &pageDirectory[page][offset];
+		return &entities[index];
 	}
-
-	//uint64_t createEntity (void)
-
 };
 
 //the handle for the ECS system
